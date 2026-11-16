@@ -1,0 +1,53 @@
+{
+  "name": "app-guard-kit",
+  "version": "1.0.0",
+  "description": "Reusable app lock for React Native / Expo apps: Face ID / Touch ID with a PIN fallback, PIN setup and change kept on the device, hidden amounts revealed behind the PIN that hide again on their own, an app-switcher cover, wrong-PIN limits, and a Security page for app-settings-kit.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./settings": "./src/settings.ts",
+    "./logic": "./src/logic/index.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "author": "Yuvaraj Salla",
+  "peerDependencies": {
+    "@expo/vector-icons": ">=14",
+    "app-account-kit": ">=7.12.0",
+    "expo-crypto": ">=13",
+    "expo-local-authentication": ">=13",
+    "expo-secure-store": ">=13",
+    "react": ">=18",
+    "react-native": ">=0.74",
+    "react-native-safe-area-context": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "app-account-kit": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@types/react": "~19.3.0",
+    "@types/react-test-renderer": "^19.3.1",
+    "app-account-kit": "github:yuvarajsalla20/app-account-kit#874b317f9a939bb3ffb7fffff4770513855403c8",
+    "expo-crypto": "~58.0.6",
+    "expo-local-authentication": "~58.0.3",
+    "expo-secure-store": "~58.0.3",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "^5.11.1",
+    "react-test-renderer": "19.3.0",
+    "typescript": "~6.0.3",
+    "vitest": "^2.1.9"
+  }
+}
