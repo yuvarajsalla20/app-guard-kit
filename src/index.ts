@@ -1,0 +1,18 @@
+export { KIT_NAME, KIT_VERSION } from './kit';
+export { createGuardKit } from './createGuardKit';
+export type { GuardKit, GuardKitOptions } from './createGuardKit';
+export { GuardProvider } from './GuardProvider';
+export type { GuardProviderProps } from './GuardProvider';
+export { useGuardState } from './context';
+export { Amount, MASK, RevealButton, useReveal } from './reveal';
+export type { AmountProps, Reveal, RevealButtonProps } from './reveal';
+export { ChangePinSheet } from './ui/screens';
+export { GuardController } from './controller';
+export type { BiometricKind, BiometricResult, GuardState, Phase, PinResult } from './controller';
+export { DEFAULT_STRINGS } from './strings';
+export type { GuardStrings } from './strings';
+export { DEFAULT_THEME } from './theme';
+export type { GuardBrand, GuardComponents, GuardTheme } from './theme';
+export { DEFAULT_CONFIG, DEFAULT_LIMITS } from './logic';
+export type { GuardConfig, GuardSettings, RevealWith, TryLimits } from './logic';
+export type { ScreenCaptureLike } from './modules';

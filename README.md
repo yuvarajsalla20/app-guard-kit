@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-> Status: **design only, not built yet.** Building starts only after the owner says "yes, build it". Choices marked *to confirm* are guesses waiting for the owner's decision.
+> Status: **v1.0.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·
@@ -27,7 +27,7 @@ First used by **PAL – Personal Asset Locker**.
 4. [PIN](#pin)
 5. [Face ID / Touch ID](#face-id--touch-id)
 6. [Hidden amounts (reveal behind the PIN)](#hidden-amounts-reveal-behind-the-pin)
-7. [Forgot PIN (OTP)](#forgot-pin-otp)
+7. [Forgot PIN](#forgot-pin)
 8. [Where things are stored](#where-things-are-stored)
 9. [Install](#install)
 10. [How an app uses it](#how-an-app-uses-it)
@@ -36,7 +36,8 @@ First used by **PAL – Personal Asset Locker**.
 13. [Rules it follows](#rules-it-follows)
 14. [Kit rules](#kit-rules)
 15. [Build plan](#build-plan)
-16. [To confirm](#to-confirm)
+16. [Decisions](#decisions)
+17. [Known limits](#known-limits)
 
 ---
 
@@ -48,7 +49,7 @@ First used by **PAL – Personal Asset Locker**.
 | How | Apple, Google or email sign-in through Firebase Auth | Face ID / Touch ID or a PIN, on the phone |
 | How often | Once; stays signed in for weeks | Every time the app opens or comes back, and before amounts are shown |
 | Where it lives | Firebase (cloud account) | The phone only (Keychain). The PIN never leaves the device |
-| Lost access | Password reset email | Forgot PIN → prove who you are again (see [Forgot PIN](#forgot-pin-otp)) |
+| Lost access | Password reset email | Forgot PIN → prove who you are again (see [Forgot PIN](#forgot-pin)) |
 
 The guard kit sits **inside** a signed-in session. It never signs anyone in or out by itself, and it does not duplicate anything the auth kit does. When the guard needs to check identity again (forgot PIN, too many wrong tries), it asks the auth kit.
 
@@ -73,7 +74,7 @@ App opens ─► auth kit: signed in? ──no──► Sign-in screen (auth kit
 - **Hidden amounts:** an `<Amount>` component and a `useReveal()` hook. Amounts show as `•••••` until the eye is tapped and the PIN is entered.
 - **Auto-hide:** amounts hide again after a configurable idle time, and whenever the app goes to the background or locks.
 - **Privacy cover** in the app switcher, so the last screen is not visible in the snapshot.
-- **Forgot PIN / OTP** reset.
+- **Forgot PIN** reset by signing in again.
 - **Wrong-PIN limits** with growing wait times.
 - A **Security page** for app-settings-kit.
 
@@ -83,7 +84,7 @@ App opens ─► auth kit: signed in? ──no──► Sign-in screen (auth kit
 |---|---|
 | Cold start (app opened) | Lock screen first, before any app screen draws |
 | Back from background | Locked again if it was away longer than the **grace time** |
-| Grace time | Default **0 seconds** (lock every time), options 0 s / 30 s / 1 min / 5 min. *To confirm* |
+| Grace time | Default **0 seconds** (lock every time), options 0 s / 30 s / 1 min / 5 min |
 | Phone locked while in the app | Treated as going to the background |
 | App switcher | A cover (app logo on the theme background) hides the screen while the app is inactive |
 | Signed out | No lock (the auth kit's sign-in screen shows instead). Sign-out clears the PIN |
@@ -92,19 +93,19 @@ The lock screen is themeable like the auth kit's sign-in screen (logo, colours, 
 
 ## PIN
 
-- **Length:** 4 digits (the mockup uses 4). 6 digits as an option. *To confirm*
+- **Length:** 4 digits (the mockup uses 4). Apps can choose 6 with `pinLength: 6`.
 - Set up right after first sign-in (required for apps that turn `requirePin` on, as PAL does), entered twice to confirm.
-- Rejects obvious PINs: `0000`, `1234`, `1111`… *To confirm*
+- Rejects obvious PINs: one digit repeated (`0000`), straight runs up or down (`1234`, `4321`, `9012`), two digits taking turns (`1212`), `123123` and a few favourites. Turn off with `rejectObviousPins: false`.
 - Change PIN needs the current PIN. Turning the lock off needs the PIN too (PAL keeps it always on).
-- **Wrong tries:** after 5 wrong tries, wait 30 s; then 1 min, 5 min, 15 min. After 10 wrong tries, the app asks the person to sign in again (auth kit) and set a new PIN. Nothing is ever erased automatically. *Numbers to confirm*
-- The waiting time is counted with the device's uptime clock, so changing the phone's time does not skip it.
+- **Wrong tries:** after 5 wrong tries, wait 30 s; then 1 min, 5 min, 15 min. After 10 wrong tries, the app asks the person to sign in again (auth kit) and set a new PIN. Nothing is ever erased automatically. Apps can change the numbers with `limits`.
+- The wait is saved in the Keychain, so closing the app does not end it. Setting the phone's clock back starts the wait again. Setting it forward can shorten a wait, but every wrong try still counts toward the limit of 10, which always ends in signing in again. (Expo has no device-uptime clock to do better without a native module.)
 
 ## Face ID / Touch ID
 
 - Offered after the PIN is set ("Unlock with Face ID?"). Can be turned on and off in Settings.
 - Uses `expo-local-authentication`. The prompt text comes from the app (`NSFaceIDUsageDescription` in `app.json`).
-- If Face ID fails, is cancelled, is not enrolled, or the phone's Face ID set changes (someone adds a new face), the kit falls back to the PIN. *A change in enrolled faces turns Face ID off until the PIN is entered: to confirm.*
-- Face ID can also reveal hidden amounts, if the app allows it (`revealWith: 'pin' | 'pin-or-biometric'`). PAL: **PIN only** for now, as decided. *To confirm*
+- If Face ID fails, is cancelled, is not enrolled, or the phone's Face ID set changes (someone adds a new face), the kit falls back to the PIN. A change in enrolled faces turns Face ID off until the PIN is entered: Face ID reads a Keychain secret that iOS keeps only for "the faces enrolled now" (`biometryCurrentSet`), and iOS deletes it when a face is added.
+- Face ID can also reveal hidden amounts, if the app allows it (`revealWith: 'pin' | 'pin-or-biometric'`). Default and PAL: **PIN only**.
 
 ## Hidden amounts (reveal behind the PIN)
 
@@ -122,37 +123,37 @@ const { revealed, reveal, hide } = useReveal();
 |---|---|
 | Hidden when the app opens | Always |
 | Revealing | Tap 👁 → PIN → **all** amounts on all screens show |
-| Hide again after idle | **60 seconds** without a touch. Options: 30 s / 1 min / 2 min / 5 min. Set in Settings. *Default to confirm* (the mockup uses 20 s for the demo) |
+| Hide again after idle | **60 seconds** without a touch. Options: 30 s / 1 min / 2 min / 5 min. Set in Settings (the mockup uses 20 s for the demo) |
 | Hide again when leaving | Going to the background, the app switcher, or the lock screen always hides |
 | Tapping 👁 while shown | Hides straight away |
 | Masked text | `•••••` with the same width for every amount, so lengths do not give values away |
 | Screen reader | Reads "Amount hidden" |
-| Screenshots while shown | Allowed. Blocking them (`expo-screen-capture`) is an option. *To confirm* |
+| Screenshots while shown | Allowed. Apps can block them with `blockScreenshotsWhenRevealed: true` and `screenCapture` (`expo-screen-capture`) |
 
 "Idle" means no touch on the screen. The kit wraps the app in a touch listener to reset the timer, and the timer stops while the app is in the background.
 
 The revealed state lives **in memory only**. It is never saved, so a restart always starts hidden.
 
-## Forgot PIN (OTP)
+## Forgot PIN
 
-The person must prove who they are before setting a new PIN. Two ways, *which one to confirm*:
+The person must prove who they are before setting a new PIN. Two ways were considered; **A is built**:
 
 | Option | How | Notes |
 |---|---|---|
-| **A. Sign in again (recommended)** | "Forgot PIN" → the auth kit re-confirms the account (Apple, Google or email password, the same step it uses before Delete account) → set a new PIN | No extra servers or email sending. Works today with the auth kit |
-| **B. One-time code (OTP) by email** | "Forgot PIN" → a Cloud Function emails a 6-digit code to the account's email → enter it → set a new PIN | Needs a Cloud Function, an email sender and rate limits. Codes expire after 10 minutes, 5 tries, at most 3 codes an hour |
+| **A. Sign in again (built)** | "Forgot PIN" → the app's `reconfirm` re-confirms the account through the auth kit (Apple, Google or email password, the same step used before Delete account) → set a new PIN | No extra servers or email sending |
+| B. One-time code (OTP) by email (not built) | "Forgot PIN" → a Cloud Function emails a 6-digit code to the account's email → enter it → set a new PIN | Needs a Cloud Function, an email sender and rate limits. Codes expire after 10 minutes, 5 tries, at most 3 codes an hour |
 
-Either way, a reset clears the old PIN and the Face ID setting, and the amounts stay hidden.
+A reset clears the old PIN and the Face ID setting, and the amounts stay hidden.
 
 ## Where things are stored
 
 | What | Where | Leaves the phone? |
 |---|---|---|
-| PIN | **Salted hash** (PBKDF2 via `expo-crypto`, *to confirm*) in `expo-secure-store` (iOS Keychain, "this device only, when unlocked") | Never |
+| PIN | **Salted hash** (PBKDF2-HMAC-SHA-256, 10,000 rounds, 16-byte random salt from `expo-crypto`) in `expo-secure-store` (iOS Keychain, "this device only, when unlocked") | Never |
 | Face ID on/off, grace time, idle time | `expo-secure-store` | Never |
+| Face ID secret (a random token) | `expo-secure-store` behind Face ID, for the faces enrolled now | Never |
 | Wrong-try count and wait-until | `expo-secure-store` | Never |
 | Revealed / hidden | Memory | Never |
-| OTP codes (option B only) | Hashed in Firestore, written only by the Cloud Function, deleted after use | Yes, server-side only |
 
 Nothing about the PIN is sent to Firebase, Sentry or logs. Keychain items are set to **not** move to a new phone or a backup, so a new phone asks to set the PIN again after sign-in.
 
@@ -176,22 +177,31 @@ Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit r
 
 | Package | Needed for |
 |---|---|
-| `app-core-kit`, `react`, `react-native`, `react-native-safe-area-context` | Always |
-| `expo-local-authentication` | Face ID / Touch ID |
-| `expo-secure-store` | Keeping the PIN hash and settings in the Keychain |
-| `expo-crypto` | Hashing the PIN |
-| `expo-screen-capture` | Only if screenshot blocking is turned on |
-| `app-auth-kit` | Forgot PIN and too many wrong tries (re-confirm the account) |
+| `react`, `react-native`, `react-native-safe-area-context`, `@expo/vector-icons` | Always |
+| `expo-local-authentication` | Face ID / Touch ID (is it on this phone, Face or Touch) |
+| `expo-secure-store` | The PIN hash, settings and the Face ID secret in the Keychain |
+| `expo-crypto` | Random salt for the PIN hash |
+| `app-account-kit` ≥ 7.12.0 | Only for the Security page (`app-guard-kit/settings`) |
+| `expo-screen-capture` | Only if screenshot blocking is turned on (the app passes it in) |
 
-Face ID needs a **development build**, not Expo Go.
+The kit does not import app-core-kit or app-auth-kit itself: the app passes `onError: reportError` and a `reconfirm` function, so each kit stays independent.
+
+Face ID needs a **development build**, not Expo Go. In `app.json`, give the Face ID wording to both plugins:
+
+```jsonc
+"plugins": [
+  ["expo-local-authentication", { "faceIDPermission": "PAL uses Face ID to open your locker." }],
+  ["expo-secure-store", { "faceIDPermission": "PAL uses Face ID to open your locker." }]
+]
+```
 
 ## How an app uses it
 
 ```ts
-// guard.ts (one per app)
+// src/security/guard.ts (one per app)
 import { createGuardKit } from 'app-guard-kit';
 import { reportError } from 'app-core-kit';
-import { authKit } from './authKit';
+import { reconfirmAccount } from '../auth/reconfirm';
 
 export const guard = createGuardKit({
   requirePin: true,               // PAL: the lock cannot be turned off
@@ -200,7 +210,7 @@ export const guard = createGuardKit({
   graceSeconds: 0,                // lock every time the app comes back
   idleHideSeconds: 60,            // hide amounts after 60 s idle
   revealWith: 'pin',              // 'pin' | 'pin-or-biometric'
-  reconfirm: authKit.reconfirm,   // forgot PIN / too many tries → auth kit
+  reconfirm: reconfirmAccount,    // Forgot PIN / too many tries: sign in again, resolve true when it was them
   onError: reportError,
 });
 ```
@@ -209,44 +219,67 @@ export const guard = createGuardKit({
 // App.tsx
 <SafeAreaProvider>
   <SubscriptionProvider …>
-    <GuardProvider kit={guard} userId={uid} brand={{ logo: <Logo /> }} theme={{ bg: '#FBF8F3', accent: '#A87A2E' }}>
+    <GuardProvider kit={guard} userId={authLoading ? undefined : user?.uid ?? null} brand={{ logo: <Logo /> }} theme={{ bg: '#FBF8F3', key: '#F3EDE4', accent: '#A87A2E' }}>
       <ErrorBoundary where="app">{/* screens */}</ErrorBoundary>
     </GuardProvider>
   </SubscriptionProvider>
 </SafeAreaProvider>
 ```
 
-`GuardProvider` draws the lock screen over the app when locked, the PIN setup when no PIN is set, and the app-switcher cover. `userId` comes from the auth kit: when it changes or becomes empty (sign-out), the PIN and settings for the old user are cleared.
+`GuardProvider` draws the lock screen over the app when locked, the PIN setup when no PIN is set, the "Unlock with Face ID?" offer, and the app-switcher cover. The app stays mounted underneath (so it keeps its place) but screen readers cannot reach it.
 
-*All names above are a sketch, to confirm when building.*
+`userId`: pass `undefined` while sign-in is loading (the cover shows), `null` when signed out (no lock), and the id when signed in. When it changes to another person or to `null`, the previous person's PIN and settings are wiped from the phone.
+
+**Screens**
+
+```tsx
+import { Amount, RevealButton, useReveal } from 'app-guard-kit';
+
+<Amount value={245000} format={formatInr} style={styles.big} />   // ••••• until revealed; reads "Amount hidden"
+<RevealButton />                                                    // the eye: PIN sheet, then every amount shows
+const { revealed, reveal, hide, toggle } = useReveal();
+```
+
+**Delete account:** call `guard.clear()` inside the auth kit's `eraseData`, so the Keychain is wiped too. `guard.hide()` hides amounts at any time.
+
+**`reconfirm`** is the app's own small function around the auth kit: Apple and Google sign the person in again with their sheet; email accounts ask for the password. It resolves `true` when the account was confirmed and `false` when cancelled. (A ready-made `reconfirm` inside app-auth-kit would remove this app code; see [Known limits](#known-limits).)
+
+**Wording and look:** `createGuardKit({ strings: { lockTitle: 'PAL is locked' } })`, and `theme`, `brand` (`logo`, `backdrop`) and `components` (`Text`, for the app's fonts) on `GuardProvider`.
 
 ## Settings
 
 The kit gives a **Security page** to drop into app-settings-kit's `extraPages`:
 
-- Face ID: on / off
-- Change PIN
+```tsx
+import { securityPage } from 'app-guard-kit/settings';
+
+<AppSettings … extraPages={[securityPage({ tint: '#A87A2E' })]} />
+```
+
+- Face ID: on / off (shown when the phone has Face ID or Touch ID)
+- Change PIN (current PIN, new PIN, new PIN again)
 - Lock after: Immediately / 30 s / 1 min / 5 min
 - Hide amounts after: 30 s / 1 min / 2 min / 5 min
-- Turn off lock (hidden when `requirePin` is on)
+- App lock on / off (only when `requirePin` is off; turning it off needs the PIN)
 
-It is built from app-account-kit's `SettingRow` and `PickerRow`, so it looks like the rest of Settings.
+It is built from app-account-kit's `SettingRow` and `PickerRow`, so it looks like the rest of Settings. It must be inside `GuardProvider`, which it is when the provider wraps the app.
 
 ## Expo and Firebase fit
 
-- **Expo:** only Expo modules (`expo-local-authentication`, `expo-secure-store`, `expo-crypto`). The Face ID wording goes in `app.json` through the `expo-local-authentication` config plugin (`faceIDPermission`). No hand-edited `ios/` or `android/`.
-- **Firebase:** the lock itself uses no Firebase at all. Only option B of [Forgot PIN](#forgot-pin-otp) would add a Cloud Function and a Firestore collection.
-- **Sentry (core kit):** errors are reported through `onError`, without PIN digits, counts or amounts.
+- **Expo:** only Expo modules (`expo-local-authentication`, `expo-secure-store`, `expo-crypto`, `@expo/vector-icons`). The Face ID wording goes in `app.json` through the two config plugins (`faceIDPermission`). No hand-edited `ios/` or `android/`.
+- **Firebase:** the lock uses no Firebase at all.
+- **Sentry (core kit):** errors are reported through `onError` as `guard.<step>` (for example `guard.readPin`), never with PIN digits, counts or amounts. A cancelled Face ID is not an error.
 - **Delete account (auth kit):** the app's `eraseData` should call `guard.clear()`, so the Keychain is wiped too.
 
 ## Rules it follows
 
 - The PIN is never stored in plain text, never logged, never sent anywhere.
-- The lock screen shows **before** any app content on cold start, so nothing flashes.
-- Amounts start hidden on every launch and hide on every trip to the background.
+- Keychain items are "this device only": not in backups, not moved to a new phone.
+- The cover shows **before** any app content on cold start (while sign-in and the Keychain load), so nothing flashes.
+- Amounts start hidden on every launch and hide on every trip to the background or the app switcher.
 - A wrong PIN and a cancelled Face ID never sign the person out by themselves.
 - Every word can be reworded through `strings`, like the other kits.
-- Respects Reduce Motion and Dynamic Type.
+- No movement other than a fade, so Reduce Motion is respected; text follows Dynamic Type (the keypad digits up to 1.4×).
 
 ## Kit rules
 
@@ -254,43 +287,56 @@ It is built from app-account-kit's `SettingRow` and `PickerRow`, so it looks lik
 - **Nothing app-specific** in the kit. Logo, colours and wording come from the app.
 - **Commit and push only when the owner says so.**
 
-### Planned folder layout
+### Folder layout
 
 ```
 src/
   createGuardKit.ts   options and the kit object
-  GuardProvider.tsx   lock screen, PIN setup, app-switcher cover, idle timer
-  pin.ts              hashing, checking, wrong-try limits
-  biometrics.ts       Face ID / Touch ID through expo-local-authentication
+  controller.ts       the whole lock as plain logic: PIN, Face ID, waits, grace, idle hide, sign-out wipe
+  GuardProvider.tsx   draws the lock screen, PIN setup, Face ID offer and app-switcher cover; idle touches
   reveal.tsx          Amount, RevealButton, useReveal
-  SecurityPage.tsx    the Settings page
+  SecurityPage.tsx    the Settings page (entry: app-guard-kit/settings)
+  ui/                 PIN pad and screens
+  logic/              PIN hash (PBKDF2-SHA-256), obvious-PIN rules, wrong-try limits, options
+  modules.ts          the Expo modules, swappable in tests
   strings.ts theme.ts kit.ts
-tests/                vitest, with stand-ins for the Expo modules
+tests/                vitest, with stand-ins for the Expo modules and React Native
 ```
+
+`npm run typecheck` and `npm test` (84 tests) run in CI on every pull request.
 
 ## Build plan
 
-| Step | What | Done when |
+| Step | What | State |
 |---|---|---|
-| 1 | Repo setup: package.json, TypeScript, lint, vitest, `version-tag` workflow, licence | Builds cleanly |
-| 2 | PIN: hash, check, change, clear, wrong-try limits | Tests cover right, wrong and lockout |
-| 3 | Face ID with PIN fallback | Works on a development build |
-| 4 | `GuardProvider`: lock on start and on return, grace time, app-switcher cover | No app content flashes on start (tested on device) |
-| 5 | Hidden amounts: `Amount`, `RevealButton`, `useReveal`, idle timer, hide on background | Tests for idle and background hide |
-| 6 | Forgot PIN (option A or B, as decided) | A reset works end to end |
-| 7 | Security page for app-settings-kit | Shows in PAL's Settings |
-| 8 | Release v1.0.0 and pin it in PAL | PAL's `check:kits` passes |
+| 1 | Repo setup: package.json, TypeScript, vitest, `version-tag` and `ci` workflows, licence | Done |
+| 2 | PIN: hash, check, change, clear, wrong-try limits | Done, tested |
+| 3 | Face ID with PIN fallback | Done, tested with stand-ins. **Needs a check on a real iPhone** (development build) |
+| 4 | `GuardProvider`: lock on start and on return, grace time, app-switcher cover | Done, tested. **Needs a check on a real iPhone** that nothing flashes |
+| 5 | Hidden amounts: `Amount`, `RevealButton`, `useReveal`, idle timer, hide on background | Done, tested |
+| 6 | Forgot PIN (option A: sign in again) | Done in the kit; the app supplies `reconfirm` |
+| 7 | Security page for app-settings-kit | Done |
+| 8 | Release v1.0.0 and pin it in PAL | Merging the pull request tags v1.0.0 |
 
-## To confirm
+## Decisions
 
-1. PIN length: 4 (as in the mockup) or 6.
-2. Forgot PIN: sign in again (recommended) or an email OTP.
-3. Default idle time before amounts hide (60 s suggested; the mockup demo uses 20 s).
-4. Grace time before re-locking (0 s suggested).
-5. Can Face ID reveal amounts, or the PIN only.
-6. Wrong-try limits (5 tries then waits; sign in again after 10).
-7. Block screenshots while amounts are shown, or not.
-8. Reject obvious PINs like 1234.
+Decided by the owner on 2026-11-16, and the kit's defaults:
+
+1. PIN length: **4 digits** (apps may choose 6).
+2. Forgot PIN: **sign in again** with the account (no email OTP).
+3. Amounts hide after **60 s** with no touch.
+4. Re-lock **immediately** when the app comes back (grace 0 s).
+5. Reveal amounts with the **PIN only** (`revealWith: 'pin-or-biometric'` exists for other apps).
+6. Wrong PINs: **5 free, then 30 s, 1 min, 5 min, 15 min; sign in again after 10.** Nothing is erased.
+7. Screenshots **allowed** while amounts show (blocking is opt-in).
+8. **Obvious PINs are rejected.**
+
+## Known limits
+
+- **Modals the app itself opens** (React Native `Modal`) draw above the lock screen. Close them when the app goes to the background, or keep amounts inside them as `<Amount>` (which hide on their own).
+- The wrong-try wait can be shortened by moving the phone's clock forward (see [PIN](#pin)); the sign-in-again limit still holds.
+- `reconfirm` is written in the app for now. Adding a `reconfirm()` to app-auth-kit (Apple, Google, or a password prompt for email accounts) would let every app pass `authKit.reconfirm` instead.
+- iOS only has been designed for. Android should work with the same Expo modules but is untested.
 
 ## License
 
