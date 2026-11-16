@@ -33,6 +33,12 @@ export interface GuardBrand {
   logo?: ReactNode;
   /** Drawn behind the lock screen (a gradient). */
   backdrop?: ReactNode;
+  /**
+   * Opt-in (1.1.0). When true, `logo` sits at the top of every guard screen, centred, with the PIN pad centred below it:
+   * the lock screen, PIN setup, the show-amounts sheet and Change PIN (which otherwise show a plain lock tile).
+   * The app-switcher cover keeps the logo in the middle. Default false: the 1.0 layout, logo just above the title.
+   */
+  logoAtTop?: boolean;
 }
 
 /** The app's own text component, so the screens use its fonts. */

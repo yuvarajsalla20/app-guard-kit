@@ -244,7 +244,7 @@ const { revealed, reveal, hide, toggle } = useReveal();
 
 **`reconfirm`** is the app's own small function around the auth kit: Apple and Google sign the person in again with their sheet; email accounts ask for the password. It resolves `true` when the account was confirmed and `false` when cancelled. (A ready-made `reconfirm` inside app-auth-kit would remove this app code; see [Known limits](#known-limits).)
 
-**Wording and look:** `createGuardKit({ strings: { lockTitle: 'PAL is locked' } })`, and `theme`, `brand` (`logo`, `backdrop`) and `components` (`Text`, for the app's fonts) on `GuardProvider`.
+**Wording and look:** `createGuardKit({ strings: { lockTitle: 'PAL is locked' } })`, and `theme`, `brand` (`logo`, `backdrop`, and since 1.1.0 `logoAtTop: true` to pin the logo at the top of every guard screen, including the show-amounts sheet) and `components` (`Text`, for the app's fonts) on `GuardProvider`.
 
 ## Settings
 

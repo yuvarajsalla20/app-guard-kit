@@ -1,3 +1,5 @@
+import { Text } from 'react-native';
+import type React from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GuardProvider } from '../src/GuardProvider';
@@ -24,10 +26,10 @@ function App() {
   );
 }
 
-async function render(t: ReturnType<typeof makeKit>, userId: string | null | undefined) {
+async function render(t: ReturnType<typeof makeKit>, userId: string | null | undefined, brand?: { logo?: React.ReactNode; logoAtTop?: boolean }) {
   await act(async () => {
     tree = create(
-      <GuardProvider kit={t.kit} userId={userId}>
+      <GuardProvider kit={t.kit} userId={userId} brand={brand}>
         <App />
       </GuardProvider>,
     );
@@ -96,6 +98,38 @@ describe('GuardProvider', () => {
     expect(texts(r.root)).toContain('₹2,45,000');
     await act(async () => button(r.root, 'Hide amounts').props.onPress());
     expect(texts(r.root)).toContain('•••••');
+  });
+
+  it('logoAtTop: the logo is pinned at the top on the lock screen and the show-amounts sheet', async () => {
+    const t = makeKit();
+    await t.c.setUser('u1');
+    await t.c.setPin('2580');
+    t.c.dismissOffer();
+    t.bio.enrolled = false;
+    const logo = <Text testID="app-logo">PAL</Text>;
+    const r = await render(t, 'u1', { logo, logoAtTop: true });
+    const logos = () => r.root.findAll((n) => n.props.testID === 'app-logo' && (n.type as unknown) === 'Text');
+    // Show-amounts sheet: the logo replaces the lock tile, once.
+    await act(async () => button(r.root, 'Show amounts').props.onPress());
+    expect(texts(r.root)).toContain('Enter PIN to show amounts');
+    expect(logos()).toHaveLength(1);
+    await act(async () => button(r.root, 'Cancel').props.onPress());
+    // Lock screen: the logo once, at the top, not repeated above the title.
+    await act(async () => setAppState('background'));
+    await act(async () => setAppState('active'));
+    expect(texts(r.root)).toContain('Locked');
+    expect(logos()).toHaveLength(1);
+  });
+
+  it('without logoAtTop the show-amounts sheet keeps its lock tile (1.0 look)', async () => {
+    const t = makeKit();
+    await t.c.setUser('u1');
+    await t.c.setPin('2580');
+    t.c.dismissOffer();
+    const logo = <Text testID="app-logo">PAL</Text>;
+    const r = await render(t, 'u1', { logo });
+    await act(async () => button(r.root, 'Show amounts').props.onPress());
+    expect(r.root.findAll((n) => n.props.testID === 'app-logo' && (n.type as unknown) === 'Text')).toHaveLength(0);
   });
 
   it('locks when the app goes to the background and opens with the PIN', async () => {
