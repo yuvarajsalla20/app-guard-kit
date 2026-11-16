@@ -6,6 +6,7 @@ const host = (name: string) => forwardRef<unknown, Record<string, unknown>>((pro
 export const View = host('View');
 export const Text = host('Text');
 export const Pressable = host('Pressable');
+export const Switch = host('Switch');
 export const Modal = (props: { visible?: boolean; children?: unknown }) => (props.visible ? createElement('Modal', props as never, props.children as never) : null);
 export const StyleSheet = { create: <T,>(styles: T): T => styles, absoluteFill: { position: 'absolute' }, hairlineWidth: 1 };
 export const announced: string[] = [];

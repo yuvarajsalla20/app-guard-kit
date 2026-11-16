@@ -34,6 +34,11 @@ export interface GuardStrings {
   offerBody: (bio: string) => string;
   offerYes: (bio: string) => string;
   offerNo: string;
+  /** The page form of the offer (brand.offerAsPage): the switch label, the line under it (on / off) and the button. */
+  offerSwitch: (bio: string) => string;
+  offerOnNote: (bio: string) => string;
+  offerOffNote: (bio: string) => string;
+  offerContinue: string;
   biometricsChanged: (bio: string) => string;
   // Hidden amounts
   revealTitle: string;
@@ -95,6 +100,10 @@ export const DEFAULT_STRINGS: GuardStrings = {
   offerBody: (bio) => `Open the app with ${bio}. Your PIN still works any time.`,
   offerYes: (bio) => `Use ${bio}`,
   offerNo: 'Not now',
+  offerSwitch: (bio) => `Unlock with ${bio}`,
+  offerOnNote: (bio) => `${bio} is on. You can change this in Settings > Security.`,
+  offerOffNote: (bio) => `${bio} is off. You can turn it on in Settings > Security.`,
+  offerContinue: 'Continue',
   biometricsChanged: (bio) => `${bio} changed on this phone, so it was turned off. Turn it on again in Settings.`,
   revealTitle: 'Enter PIN to show amounts',
   revealSubtitle: (idle) => `They hide again after ${idle} with no activity, or when you leave the app.`,

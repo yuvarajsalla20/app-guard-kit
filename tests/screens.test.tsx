@@ -26,7 +26,7 @@ function App() {
   );
 }
 
-async function render(t: ReturnType<typeof makeKit>, userId: string | null | undefined, brand?: { logo?: React.ReactNode; logoAtTop?: boolean }) {
+async function render(t: ReturnType<typeof makeKit>, userId: string | null | undefined, brand?: { logo?: React.ReactNode; logoAtTop?: boolean; offerAsPage?: boolean }) {
   await act(async () => {
     tree = create(
       <GuardProvider kit={t.kit} userId={userId} brand={brand}>
@@ -70,6 +70,22 @@ describe('GuardProvider', () => {
     await typePin(r.root, '2580');
     expect(t.c.getState().phase).toBe('open');
     expect(texts(r.root)).toContain('Unlock with Face ID?');
+  });
+
+  it('with brand.offerAsPage, the Face ID offer is a page with a switch (on) and Continue, no pop-up', async () => {
+    const t = makeKit();
+    const r = await render(t, 'u1', { offerAsPage: true });
+    await typePin(r.root, '2580');
+    await typePin(r.root, '2580');
+    expect(r.root.findAll((n) => (n.type as unknown) === 'Modal')).toHaveLength(0);
+    expect(texts(r.root)).toContain('Face ID is on. You can change this in Settings > Security.');
+    const sw = r.root.find((n) => (n.type as unknown) === 'Switch');
+    expect(sw.props.value).toBe(true);
+    await act(async () => sw.props.onValueChange(false));
+    expect(texts(r.root)).toContain('Face ID is off. You can turn it on in Settings > Security.');
+    await act(async () => button(r.root, 'Continue').props.onPress());
+    expect(t.c.getState().offerBiometrics).toBe(false);
+    expect(t.c.getState().settings.biometrics).toBe(false);
   });
 
   it('rejects an obvious PIN on the setup screen', async () => {

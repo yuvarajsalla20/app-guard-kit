@@ -39,6 +39,12 @@ export interface GuardBrand {
    * The app-switcher cover keeps the logo in the middle. Default false: the 1.0 layout, logo just above the title.
    */
   logoAtTop?: boolean;
+  /**
+   * Opt-in (1.2.0). When true, the Face ID offer after a new PIN is a full guard screen instead of a pop-up card: an
+   * "Unlock with Face ID" switch (on by default), a line saying where to change it later, and Continue.
+   * Default false: the 1.0 pop-up card with "Use Face ID" and "Not now".
+   */
+  offerAsPage?: boolean;
 }
 
 /** The app's own text component, so the screens use its fonts. */
