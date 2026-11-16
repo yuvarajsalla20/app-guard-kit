@@ -2,6 +2,10 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 1.2.0
+
+Adds opt-in `brand.offerAsPage` on `GuardProvider`. With it, the "Unlock with Face ID?" offer after a new PIN is a full guard screen instead of a pop-up card: an "Unlock with Face ID" switch (on by default), a line saying where to change it later ("Face ID is on. You can change this in Settings > Security."), and Continue. New strings: `offerSwitch`, `offerOnNote`, `offerOffNote`, `offerContinue`. Apps that don't set it keep the pop-up card, so no update is needed.
+
 ## 1.1.0
 
 Adds opt-in `brand.logoAtTop` on `GuardProvider`. With it, the app's logo sits at the top of every guard screen, centred, and the PIN pad is centred below it. That covers the lock screen, PIN setup, the show-amounts sheet and Change PIN, which used to show a plain lock tile. The app-switcher cover keeps the logo in the middle. Apps that don't set it see no change, so no update is needed.

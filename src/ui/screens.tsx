@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGuardLook, useGuardState, useTick } from '../context';
 import type { GuardController, PinResult } from '../controller';
@@ -204,12 +204,13 @@ export function SetupScreen() {
   );
 }
 
-/** "Unlock with Face ID?" once, right after the first PIN. */
+/** "Unlock with Face ID?" once, right after the first PIN: a pop-up card, or a full screen with `brand.offerAsPage`. */
 export function BiometricOffer() {
-  const { controller, strings, theme, components } = useGuardLook();
+  const { controller, strings, theme, components, brand } = useGuardLook();
   const state = useGuardState();
   const [busy, setBusy] = useState(false);
   if (!state.offerBiometrics || !state.biometricKind || state.covered) return null;
+  if (brand.offerAsPage) return <BiometricOfferPage />;
   const bio = strings.biometricName(state.biometricKind);
   const { Text } = components;
   return (
@@ -234,6 +235,38 @@ export function BiometricOffer() {
         </View>
       </View>
     </Modal>
+  );
+}
+
+/** The offer as a guard screen of its own (no pop-up): a switch, on by default, and Continue. */
+function BiometricOfferPage() {
+  const { controller, strings, theme, components } = useGuardLook();
+  const state = useGuardState();
+  const [on, setOn] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const header = useHeader('tile');
+  const bio = strings.biometricName(state.biometricKind ?? 'face');
+  const { Text } = components;
+  const go = async () => {
+    if (!on) return controller.dismissOffer();
+    setBusy(true);
+    await controller.enableBiometrics();
+    setBusy(false);
+  };
+  return (
+    <GuardSurface>
+      {header}
+      <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{strings.offerTitle(bio)}</Text>
+      <Text style={[styles.body, { color: theme.muted }]}>{strings.offerBody(bio)}</Text>
+      <View style={[styles.switchRow, { backgroundColor: theme.key, borderColor: theme.border }]}>
+        <Text style={[styles.switchLabel, { color: theme.text }]}>{strings.offerSwitch(bio)}</Text>
+        <Switch value={on} onValueChange={setOn} trackColor={{ true: theme.accent }} accessibilityLabel={strings.offerSwitch(bio)} />
+      </View>
+      <Text style={[styles.note, { color: theme.muted, marginTop: 10 }]}>{on ? strings.offerOnNote(bio) : strings.offerOffNote(bio)}</Text>
+      <Pressable disabled={busy} accessibilityRole="button" accessibilityLabel={strings.offerContinue} onPress={() => void go()} style={[styles.primary, styles.pageButton, { backgroundColor: theme.accent }, busy && { opacity: 0.6 }]}>
+        <Text style={[styles.primaryLabel, { color: theme.onAccent }]}>{strings.offerContinue}</Text>
+      </Pressable>
+    </GuardSurface>
   );
 }
 
@@ -346,4 +379,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 24, alignItems: 'center', marginBottom: 16 },
   primary: { alignSelf: 'stretch', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   primaryLabel: { fontSize: 16, fontWeight: '600' },
+  switchRow: { alignSelf: 'stretch', maxWidth: 360, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, marginTop: 24 },
+  switchLabel: { fontSize: 16, fontWeight: '500' },
+  pageButton: { maxWidth: 360, width: '100%' },
 });
