@@ -50,22 +50,40 @@ const LockTile = () => {
   );
 };
 
-/** A full screen of the theme's background with the safe area and an optional backdrop. */
-export function GuardSurface({ children, center = true }: { children?: ReactNode; center?: boolean }) {
+/** True when the app asked for its logo pinned at the top of the guard screens (`brand.logoAtTop`). */
+const logoOnTop = (brand: { logo?: ReactNode; logoAtTop?: boolean }) => !!brand.logoAtTop && brand.logo != null;
+
+/**
+ * A full screen of the theme's background with the safe area and an optional backdrop.
+ * With `brand.logoAtTop`, the logo is drawn at the top, centred, and the content is centred in the space below
+ * (`top={false}` leaves it out, for the cover, which shows the logo in the middle itself).
+ */
+export function GuardSurface({ children, center = true, top = true }: { children?: ReactNode; center?: boolean; top?: boolean }) {
   const { theme, brand } = useGuardLook();
   const insets = useSafeAreaInsets();
+  const pinned = top && logoOnTop(brand);
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg }]}>
       {brand.backdrop ? <View style={StyleSheet.absoluteFill} pointerEvents="none">{brand.backdrop}</View> : null}
-      <View style={[styles.fill, center && styles.center, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>{children}</View>
+      <View style={[styles.fill, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
+        {pinned ? <View style={styles.top}>{brand.logo}</View> : null}
+        <View style={[styles.fill, styles.inner, center && styles.center]}>{children}</View>
+      </View>
     </View>
   );
+}
+
+/** What goes above a PIN pad's title: nothing when the logo is pinned at the top, else the logo (or `fallback`). */
+function useHeader(fallback: 'logo' | 'tile'): ReactNode {
+  const { brand } = useGuardLook();
+  if (logoOnTop(brand)) return null;
+  return fallback === 'logo' ? (brand.logo ?? <LockTile />) : <LockTile />;
 }
 
 /** Shown in the app switcher and while the kit is starting, so no amount or screen is ever visible there. */
 export function Cover() {
   const { brand } = useGuardLook();
-  return <GuardSurface>{brand.logo ?? <LockTile />}</GuardSurface>;
+  return <GuardSurface top={false}>{brand.logo ?? <LockTile />}</GuardSurface>;
 }
 
 function TextButton({ label, onPress, strong }: { label: string; onPress: () => void; strong?: boolean }) {
@@ -79,12 +97,13 @@ function TextButton({ label, onPress, strong }: { label: string; onPress: () => 
 
 /** The lock screen: Face ID straight away when it is on, the PIN pad always. */
 export function LockScreen() {
-  const { controller, strings, brand, kit, theme, components } = useGuardLook();
+  const { controller, strings, kit, theme, components } = useGuardLook();
   const state = useGuardState();
   const waitLine = useWaitLine();
   const bio = state.biometricKind ? strings.biometricName(state.biometricKind) : '';
   const asked = useRef(false);
   const canBio = controller.canUseBiometrics();
+  const header = useHeader('logo');
 
   // Ask for Face ID once each time the lock screen comes up in front.
   useEffect(() => {
@@ -103,7 +122,7 @@ export function LockScreen() {
   if (state.reconfirmNeeded) {
     return (
       <GuardSurface>
-        {brand.logo ?? <LockTile />}
+        {header}
         <components.Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{strings.tooManyTitle}</components.Text>
         <components.Text style={[styles.body, { color: theme.muted }]}>{strings.tooManyBody}</components.Text>
         {controller.canReconfirm() ? <TextButton strong label={strings.signInAgain} onPress={() => void controller.forgotPin()} /> : null}
@@ -114,7 +133,7 @@ export function LockScreen() {
   return (
     <GuardSurface>
       <PinEntry
-        header={brand.logo ?? <LockTile />}
+        header={header}
         title={strings.lockTitle}
         subtitle={strings.lockSubtitle}
         length={kit.config.pinLength}
@@ -134,8 +153,9 @@ export function LockScreen() {
 
 /** Create a PIN: typed twice. After Forgot PIN too. */
 export function SetupScreen() {
-  const { controller, strings, kit, brand } = useGuardLook();
+  const { controller, strings, kit } = useGuardLook();
   const state = useGuardState();
+  const header = useHeader('logo');
   const [first, setFirst] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const length = kit.config.pinLength;
@@ -145,7 +165,7 @@ export function SetupScreen() {
       {first === null ? (
         <PinEntry
           key="first"
-          header={brand.logo ?? <LockTile />}
+          header={header}
           title={strings.setupTitle}
           subtitle={notice ?? strings.setupSubtitle(length)}
           length={length}
@@ -161,7 +181,7 @@ export function SetupScreen() {
       ) : (
         <PinEntry
           key="second"
-          header={brand.logo ?? <LockTile />}
+          header={header}
           title={strings.confirmTitle}
           subtitle={strings.confirmSubtitle}
           length={length}
@@ -228,11 +248,12 @@ export function PinSheet({ visible, title, subtitle, onSubmit, onClose, extraKey
 }) {
   const { kit, strings } = useGuardLook();
   const waitLine = useWaitLine();
+  const header = useHeader('tile');
   return (
     <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={onClose}>
       <GuardSurface>
         <PinEntry
-          header={<LockTile />}
+          header={header}
           title={title}
           subtitle={subtitle}
           length={kit.config.pinLength}
@@ -250,6 +271,7 @@ export function PinSheet({ visible, title, subtitle, onSubmit, onClose, extraKey
 export function ChangePinSheet({ visible, onClose, onDone }: { visible: boolean; onClose: () => void; onDone?: () => void }) {
   const { controller, strings, kit } = useGuardLook();
   const waitLine = useWaitLine();
+  const header = useHeader('tile');
   const [step, setStep] = useState<'current' | 'new' | 'again'>('current');
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -268,7 +290,7 @@ export function ChangePinSheet({ visible, onClose, onDone }: { visible: boolean;
       <GuardSurface>
         <PinEntry
           resetKey={step}
-          header={<LockTile />}
+          header={header}
           title={strings.changeTitle}
           subtitle={notice ?? title}
           length={kit.config.pinLength}
@@ -311,6 +333,8 @@ export function ChangePinSheet({ visible, onClose, onDone }: { visible: boolean;
 const styles = StyleSheet.create({
   fill: { flex: 1, paddingHorizontal: 16 },
   center: { alignItems: 'center', justifyContent: 'center' },
+  inner: { paddingHorizontal: 0 },
+  top: { alignItems: 'center', paddingTop: 8 },
   tile: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   title: { fontSize: 20, fontWeight: '600', textAlign: 'center', marginTop: 12 },
   body: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 8, maxWidth: 300 },
