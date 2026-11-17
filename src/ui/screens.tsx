@@ -56,7 +56,8 @@ const logoOnTop = (brand: { logo?: ReactNode; logoAtTop?: boolean }) => !!brand.
 /**
  * A full screen of the theme's background with the safe area and an optional backdrop.
  * With `brand.logoAtTop`, the logo is drawn at the top, centred, and the content is centred in the space below
- * (`top={false}` leaves it out, for the cover, which shows the logo in the middle itself).
+ * (`top={false}` leaves it out, for the cover, which shows the logo in the middle itself). With
+ * `brand.contentUnderLogo` too, the content starts just under the logo instead.
  */
 export function GuardSurface({ children, center = true, top = true }: { children?: ReactNode; center?: boolean; top?: boolean }) {
   const { theme, brand } = useGuardLook();
@@ -67,7 +68,7 @@ export function GuardSurface({ children, center = true, top = true }: { children
       {brand.backdrop ? <View style={StyleSheet.absoluteFill} pointerEvents="none">{brand.backdrop}</View> : null}
       <View style={[styles.fill, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
         {pinned ? <View style={styles.top}>{brand.logo}</View> : null}
-        <View style={[styles.fill, styles.inner, center && styles.center]}>{children}</View>
+        <View style={[styles.fill, styles.inner, center && styles.center, pinned && brand.contentUnderLogo && styles.underLogo]}>{children}</View>
       </View>
     </View>
   );
@@ -366,6 +367,8 @@ export function ChangePinSheet({ visible, onClose, onDone }: { visible: boolean;
 const styles = StyleSheet.create({
   fill: { flex: 1, paddingHorizontal: 16 },
   center: { alignItems: 'center', justifyContent: 'center' },
+  // brand.contentUnderLogo: start just under the pinned logo instead of centring in the space left.
+  underLogo: { justifyContent: 'flex-start', paddingTop: 16 },
   inner: { paddingHorizontal: 0 },
   top: { alignItems: 'center', paddingTop: 8 },
   tile: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
@@ -379,7 +382,8 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 24, alignItems: 'center', marginBottom: 16 },
   primary: { alignSelf: 'stretch', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   primaryLabel: { fontSize: 16, fontWeight: '600' },
-  switchRow: { alignSelf: 'stretch', maxWidth: 360, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, marginTop: 24 },
+  switchRow: { alignSelf: 'center', width: '100%', maxWidth: 360, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, marginTop: 24 },
   switchLabel: { fontSize: 16, fontWeight: '500' },
-  pageButton: { maxWidth: 360, width: '100%' },
+  // A compact pill in the middle of the page, not a full-width bar.
+  pageButton: { alignSelf: 'center', minWidth: 180, paddingHorizontal: 40, borderRadius: 999 },
 });
