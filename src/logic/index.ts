@@ -3,6 +3,6 @@ export { DEFAULT_LIMITS, NO_TRIES, afterWrong, mustReconfirm, parseTries, second
 export type { TryLimits, TryState } from './limits';
 export { DEFAULT_CONFIG, defaultSettings, normalizeConfig, parseSettings, safeKeyPart } from './options';
 export type { GuardConfig, GuardSettings, RevealWith } from './options';
-export { PIN_ROUNDS, checkPin, hashPin, isObviousPin, pinProblem } from './pin';
+export { PIN_ROUNDS, checkPin, checkPinAsync, derivePinJs, hashPin, hashPinAsync, isObviousPin, pinProblem, type DerivePin } from './pin';
 export type { PinProblem } from './pin';
 export { hmacSha256, pbkdf2Sha256, sha256 } from './sha256';

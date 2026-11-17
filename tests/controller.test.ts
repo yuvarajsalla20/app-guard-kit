@@ -367,3 +367,16 @@ describe('change PIN and optional lock', () => {
     expect(t.items.has('appguard.u1.pin')).toBe(false);
   });
 });
+
+describe('fewer redraws', () => {
+  it('does not notify when a change changes nothing', async () => {
+    const t = await lockedKit();
+    await t.c.unlockWithPin('2580');
+    let calls = 0;
+    const stop = t.c.subscribe(() => calls++);
+    t.c.hide(); // already hidden
+    t.c.dismissNotice(); // no notice
+    stop();
+    expect(calls).toBe(0);
+  });
+});

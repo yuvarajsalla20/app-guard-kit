@@ -90,36 +90,67 @@ export const hmacSha256 = (key: Uint8Array, data: Uint8Array): Uint8Array => {
   return finish(padState(k, 0x5c), 64, finish(padState(k, 0x36), 64, data));
 };
 
-/** PBKDF2-HMAC-SHA-256 for one 32-byte block, which is all a PIN check needs. */
-export function pbkdf2Sha256(password: Uint8Array, salt: Uint8Array, iterations: number): Uint8Array {
+/** The first PBKDF2 round (the salt and block number), as 8 words, and the HMAC pad states for the rest. */
+function firstRound(password: Uint8Array, salt: Uint8Array) {
   const k = hmacKey(password);
   const inner = padState(k, 0x36);
   const outer = padState(k, 0x5c);
   const first = new Uint8Array(salt.length + 4);
   first.set(salt);
   first[salt.length + 3] = 1;
-  let u = finish(outer, 64, finish(inner, 64, first));
-  const out = u.slice();
-  // Every later round hashes exactly 32 bytes, so the padded block is built once and reused.
-  const block = new Uint8Array(64);
-  block[32] = 0x80;
-  block[62] = 0x03; // (64 + 32) * 8 = 768 bits = 0x0300
-  const words = new Uint32Array(16);
-  const h = new Uint32Array(8);
-  for (let n = 1; n < iterations; n++) {
-    block.set(u);
-    toWords(block, 0, words);
-    h.set(inner);
-    compress(h, words);
-    block.set(toBytes(h));
-    toWords(block, 0, words);
-    h.set(outer);
-    compress(h, words);
-    u = toBytes(h);
-    for (let i = 0; i < 32; i++) out[i] ^= u[i];
-  }
-  return out;
+  const u = finish(outer, 64, finish(inner, 64, first));
+  const words = new Uint32Array(8);
+  for (let i = 0; i < 8; i++) words[i] = (u[i * 4] << 24) | (u[i * 4 + 1] << 16) | (u[i * 4 + 2] << 8) | u[i * 4 + 3];
+  return { inner, outer, u: words, out: words.slice() };
 }
+
+/**
+ * Runs `count` more PBKDF2 rounds on `u`, XOR-ing each into `out`. Works on 32-bit words throughout: every later
+ * round hashes exactly 32 bytes, so its padded block is fixed and no bytes are converted or allocated per round.
+ */
+function moreRounds(inner: Uint32Array, outer: Uint32Array, u: Uint32Array, out: Uint32Array, count: number): void {
+  const block = new Uint32Array(16);
+  block[8] = 0x80000000;
+  block[15] = 768; // (64 + 32) * 8 bits
+  const h = new Uint32Array(8);
+  for (let n = 0; n < count; n++) {
+    block.set(u);
+    h.set(inner);
+    compress(h, block);
+    block.set(h);
+    h.set(outer);
+    compress(h, block);
+    for (let i = 0; i < 8; i++) {
+      u[i] = h[i];
+      out[i] ^= h[i];
+    }
+  }
+}
+
+/** PBKDF2-HMAC-SHA-256 for one 32-byte block, which is all a PIN check needs. */
+export function pbkdf2Sha256(password: Uint8Array, salt: Uint8Array, iterations: number): Uint8Array {
+  const { inner, outer, u, out } = firstRound(password, salt);
+  moreRounds(inner, outer, u, out, iterations - 1);
+  return toBytes(out);
+}
+
+/** Rounds per slice in the async version: a few milliseconds of work at a time. */
+const SLICE = 500;
+
+/**
+ * The same result as pbkdf2Sha256, worked out in short slices with a pause between them, so the app keeps
+ * responding to touches and keeps drawing while a PIN is checked.
+ */
+export async function pbkdf2Sha256Async(password: Uint8Array, salt: Uint8Array, iterations: number, pause: () => Promise<void> = nextTick): Promise<Uint8Array> {
+  const { inner, outer, u, out } = firstRound(password, salt);
+  for (let left = iterations - 1; left > 0; left -= SLICE) {
+    moreRounds(inner, outer, u, out, Math.min(SLICE, left));
+    if (left > SLICE) await pause();
+  }
+  return toBytes(out);
+}
+
+const nextTick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 export const utf8 = (text: string): Uint8Array => {
   const out: number[] = [];

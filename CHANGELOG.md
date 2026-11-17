@@ -2,6 +2,16 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 1.4.0
+
+Speed. Nothing to change in an app; screens look the same. Saved PINs keep working (same hash format and bytes).
+
+- **No freeze while a PIN is checked.** PBKDF2 (10,000 rounds) now runs in short slices with a pause between them, so the lock screen keeps drawing and taking touches. The rounds also run on 32-bit words with no per-round allocation (about 20% faster in an interpreter).
+- Optional `modules.pbkdf2` in `createGuardKit`: an app may pass a native PBKDF2-HMAC-SHA-256 (e.g. react-native-quick-crypto) for even faster checks. Left out, the kit uses its own.
+- `checkPinAsync`, `hashPinAsync`, `pbkdf2Sha256Async` added; `checkPin` / `hashPin` stay.
+- **Fewer redraws.** The controller no longer notifies when a change changes nothing (app switches sent several). `Amount` and `useReveal` now follow only whether amounts show (`useGuardRevealed`, exported), not every lock-state change.
+- `GuardProvider` compares the contents of `theme`, `brand` and `components`, so apps passing them inline no longer redraw every amount on each render.
+
 ## 1.3.0
 
 Adds opt-in `brand.contentUnderLogo` on `GuardProvider`, used with `logoAtTop`. With it, the title, PIN dots and pad start right under the pinned logo instead of being centred in the space below it, so tall phones don't show a big gap between the logo and the PIN. Apps that don't set it see no change, so no update is needed.

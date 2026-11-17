@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-> Status: **v1.0.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
+> Status: **v1.4.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·
@@ -98,6 +98,7 @@ The lock screen is themeable like the auth kit's sign-in screen (logo, colours, 
 - Rejects obvious PINs: one digit repeated (`0000`), straight runs up or down (`1234`, `4321`, `9012`), two digits taking turns (`1212`), `123123` and a few favourites. Turn off with `rejectObviousPins: false`.
 - Change PIN needs the current PIN. Turning the lock off needs the PIN too (PAL keeps it always on).
 - **Wrong tries:** after 5 wrong tries, wait 30 s; then 1 min, 5 min, 15 min. After 10 wrong tries, the app asks the person to sign in again (auth kit) and set a new PIN. Nothing is ever erased automatically. Apps can change the numbers with `limits`.
+- **Checking a PIN** (PBKDF2, 10,000 rounds) runs in short slices, so the screen never freezes while it works (1.4.0). An app may pass a native PBKDF2 as `modules: { pbkdf2 }` to `createGuardKit` for faster checks; it must give the same bytes, and saved PINs keep working.
 - The wait is saved in the Keychain, so closing the app does not end it. Setting the phone's clock back starts the wait again. Setting it forward can shorten a wait, but every wrong try still counts toward the limit of 10, which always ends in signing in again. (Expo has no device-uptime clock to do better without a native module.)
 
 ## Face ID / Touch ID

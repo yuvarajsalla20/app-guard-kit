@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
-import { DEFAULT_COMPONENTS, GuardContext, mergeTheme, useGuardState, type GuardLook } from './context';
+import { DEFAULT_COMPONENTS, GuardContext, mergeTheme, useGuardState, useShallowStable, type GuardLook } from './context';
 import type { GuardKit } from './createGuardKit';
 import type { GuardBrand, GuardComponents, GuardTheme } from './theme';
 import { RevealSheet } from './reveal';
@@ -20,8 +20,12 @@ export interface GuardProviderProps {
  * Wrap the app (inside SafeAreaProvider). Draws the lock screen, the PIN setup and the app-switcher cover
  * over the app, starts every launch locked with amounts hidden, and watches touches for the idle timer.
  */
-export function GuardProvider({ kit, userId, theme, brand, components, children }: GuardProviderProps) {
+export function GuardProvider({ kit, userId, theme: themeProp, brand: brandProp, components: componentsProp, children }: GuardProviderProps) {
   const controller = kit.controller;
+  // Apps often pass these inline (a new object each render): compare their contents, so every amount does not redraw.
+  const theme = useShallowStable(themeProp);
+  const brand = useShallowStable(brandProp);
+  const components = useShallowStable(componentsProp);
   const [revealOpen, setRevealOpen] = useState(false);
   const askReveal = useCallback(() => {
     if (controller.revealWithoutPin()) return;

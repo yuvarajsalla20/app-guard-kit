@@ -1,6 +1,6 @@
 import { afterWrong, mustReconfirm, NO_TRIES, parseTries, settle, secondsLeft, triesLeft, type TryState } from './logic/limits';
 import { defaultSettings, parseSettings, safeKeyPart, type GuardConfig, type GuardSettings } from './logic/options';
-import { checkPin, hashPin, pinProblem, type PinProblem } from './logic/pin';
+import { checkPinAsync, derivePinJs, hashPinAsync, pinProblem, type PinProblem } from './logic/pin';
 import { toHex } from './logic/sha256';
 import { FACE, FINGERPRINT, type GuardModules, type ScreenCaptureLike } from './modules';
 
@@ -89,7 +89,14 @@ export class GuardController {
     return () => this.listeners.delete(listener);
   };
 
+  /** The PIN stretcher: the app's native one when given, else the kit's sliced JavaScript one. */
+  private get derive() {
+    return this.deps.modules.pbkdf2 ?? derivePinJs;
+  }
+
   private set(patch: Partial<GuardState>) {
+    // Nothing changes: no new state and no redraw of every amount (app switches send several such patches).
+    if ((Object.keys(patch) as (keyof GuardState)[]).every((k) => Object.is(this.state[k], patch[k]))) return;
     const wasRevealed = this.state.revealed;
     this.state = { ...this.state, ...patch };
     if (wasRevealed !== this.state.revealed) this.revealChanged();
@@ -235,7 +242,7 @@ export class GuardController {
 
   private async savePin(pin: string) {
     const salt = this.deps.modules.randomBytes(16);
-    await this.store.setItemAsync(this.key('pin'), hashPin(pin, salt), this.opts());
+    await this.store.setItemAsync(this.key('pin'), await hashPinAsync(pin, salt, undefined, this.derive), this.opts());
   }
 
   private async saveSettings(settings: GuardSettings) {
@@ -277,7 +284,7 @@ export class GuardController {
       return 'reconfirm';
     }
     await new Promise((r) => setTimeout(r, 0)); // let the screen show it is checking before the hashing work
-    if (checkPin(pin, record)) {
+    if (await checkPinAsync(pin, record, this.derive)) {
       if (tries.fails > 0) await this.saveTries(NO_TRIES).catch((e) => this.report('saveTries', e));
       this.set({ tries: NO_TRIES });
       return 'ok';
