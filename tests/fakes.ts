@@ -1,3 +1,4 @@
+import { pbkdf2Sha256 } from '../src/logic/sha256';
 import { createGuardKit, type GuardKitOptions } from '../src/createGuardKit';
 import type { GuardModules } from '../src/modules';
 
@@ -15,6 +16,8 @@ export function fakeModules() {
     accessible: 5,
     biometricAccessible: 6,
     randomBytes: (n) => new Uint8Array(n).map((_, i) => (i * 37 + 11) & 255),
+    // A "native" PBKDF2 that answers at once, so the flows below need no timer ticks (the sliced JS one is tested in logic.test.ts).
+    pbkdf2: async (password, salt, rounds) => pbkdf2Sha256(password, salt, rounds),
     biometrics: {
       hasHardwareAsync: async () => bio.hardware,
       isEnrolledAsync: async () => bio.enrolled,

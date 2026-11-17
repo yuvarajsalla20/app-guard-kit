@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { KIT_NAME, KIT_VERSION } from '../src/kit';
 import { DEFAULT_LIMITS, afterWrong, mustReconfirm, NO_TRIES, parseTries, secondsLeft, settle, triesLeft } from '../src/logic/limits';
 import { normalizeConfig, parseSettings, safeKeyPart } from '../src/logic/options';
-import { checkPin, hashPin, isObviousPin, pinProblem } from '../src/logic/pin';
-import { hmacSha256, pbkdf2Sha256, sha256, toHex, utf8 } from '../src/logic/sha256';
+import { checkPin, checkPinAsync, hashPin, hashPinAsync, isObviousPin, pinProblem } from '../src/logic/pin';
+import { hmacSha256, pbkdf2Sha256, pbkdf2Sha256Async, sha256, toHex, utf8 } from '../src/logic/sha256';
 
 describe('kit version', () => {
   it('matches package.json', () => {
@@ -104,5 +104,23 @@ describe('options', () => {
     expect(safeKeyPart('abcXYZ_09-')).toBe('abcXYZ_09-');
     expect(safeKeyPart('a/b')).toMatch(/^h\.[0-9a-f]{64}$/);
     expect(safeKeyPart('a/b')).not.toBe(safeKeyPart('a_b'));
+  });
+});
+
+describe('sliced PBKDF2 and async PIN checks', () => {
+  it.each([1, 2, 499, 500, 501, 1234])('pbkdf2Sha256Async with %i rounds matches node:crypto', async (rounds) => {
+    const pauses: number[] = [];
+    const got = await pbkdf2Sha256Async(utf8('2580'), utf8('saltsaltsaltsalt'), rounds, async () => void pauses.push(1));
+    expect(toHex(got)).toBe(pbkdf2Sync('2580', 'saltsaltsaltsalt', rounds, 32, 'sha256').toString('hex'));
+    expect(pauses.length).toBe(Math.max(0, Math.ceil((rounds - 1) / 500) - 1));
+  });
+  it('hashPinAsync and checkPinAsync agree with the sync versions (old PINs keep working)', async () => {
+    const salt = new Uint8Array(16).fill(7);
+    const record = hashPin('2580', salt, 50);
+    expect(await hashPinAsync('2580', salt, 50)).toBe(record);
+    expect(await checkPinAsync('2580', record)).toBe(true);
+    expect(await checkPinAsync('2581', record)).toBe(false);
+    expect(await checkPinAsync('2580', 'damaged')).toBe(false);
+    expect(checkPin('2580', await hashPinAsync('2580', salt, 50))).toBe(true);
   });
 });

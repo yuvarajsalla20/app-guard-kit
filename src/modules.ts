@@ -30,6 +30,12 @@ export interface GuardModules {
   accessible: SecureStore.KeychainAccessibilityConstant;
   /** The Face ID item: as above, and deleted by iOS if the phone's passcode is removed. */
   biometricAccessible: SecureStore.KeychainAccessibilityConstant;
+  /**
+   * Optional: a native PBKDF2-HMAC-SHA-256 (32 bytes) for faster PIN checks, e.g. from react-native-quick-crypto.
+   * It must give exactly the same bytes as the kit's own; saved PINs keep working either way. Left out, the kit uses
+   * its plain-JavaScript one, worked in short slices so the app keeps responding.
+   */
+  pbkdf2?: (password: Uint8Array, salt: Uint8Array, rounds: number) => Promise<Uint8Array>;
 }
 
 export const expoModules = (): GuardModules => ({

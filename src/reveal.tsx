@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import type { ReactNode } from 'react';
 import { Pressable, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
-import { useGuardLook, useGuardState } from './context';
+import { useGuardLook, useGuardRevealed, useGuardState } from './context';
 import { formatSeconds } from './strings';
 import { PinSheet, pinMessage } from './ui/screens';
 
@@ -21,7 +21,7 @@ export interface Reveal {
 /** Whether amounts show, and the calls to show or hide them. */
 export function useReveal(): Reveal {
   const look = useGuardLook();
-  const { revealed } = useGuardState();
+  const revealed = useGuardRevealed();
   const reveal = look.askReveal;
   const hide = look.controller.hide;
   return { revealed, reveal, hide, toggle: revealed ? hide : reveal };
@@ -42,9 +42,9 @@ export interface AmountProps {
 /** A money amount that shows as ••••• until the eye and PIN reveal it. Every amount in the app should go through this. */
 export function Amount({ value, format, style, hiddenStyle, mask = MASK, numberOfLines }: AmountProps) {
   const look = useGuardLook();
-  const state = useGuardState();
+  const revealed = useGuardRevealed();
   const Text = look.components.Text;
-  if (!state.revealed) {
+  if (!revealed) {
     return (
       <Text style={[style, hiddenStyle]} numberOfLines={numberOfLines} accessibilityLabel={look.strings.hiddenAmount}>
         {mask}
