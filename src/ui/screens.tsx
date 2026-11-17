@@ -382,7 +382,8 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 24, alignItems: 'center', marginBottom: 16 },
   primary: { alignSelf: 'stretch', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   primaryLabel: { fontSize: 16, fontWeight: '600' },
-  switchRow: { alignSelf: 'stretch', maxWidth: 360, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, marginTop: 24 },
+  switchRow: { alignSelf: 'center', width: '100%', maxWidth: 360, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, marginTop: 24 },
   switchLabel: { fontSize: 16, fontWeight: '500' },
-  pageButton: { maxWidth: 360, width: '100%' },
+  // A compact pill in the middle of the page, not a full-width bar.
+  pageButton: { alignSelf: 'center', minWidth: 180, paddingHorizontal: 40, borderRadius: 999 },
 });

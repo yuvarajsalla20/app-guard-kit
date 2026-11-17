@@ -6,6 +6,8 @@ Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v
 
 Adds opt-in `brand.contentUnderLogo` on `GuardProvider`, used with `logoAtTop`. With it, the title, PIN dots and pad start right under the pinned logo instead of being centred in the space below it, so tall phones don't show a big gap between the logo and the PIN. Apps that don't set it see no change, so no update is needed.
 
+Fix for the `offerAsPage` screen (1.2.0): the "Unlock with Face ID" switch row is now centred (it sat to the left on wide screens), and Continue is a compact centred pill instead of a full-width bar.
+
 ## 1.2.0
 
 Adds opt-in `brand.offerAsPage` on `GuardProvider`. With it, the "Unlock with Face ID?" offer after a new PIN is a full guard screen instead of a pop-up card: an "Unlock with Face ID" switch (on by default), a line saying where to change it later ("Face ID is on. You can change this in Settings > Security."), and Continue. New strings: `offerSwitch`, `offerOnNote`, `offerOffNote`, `offerContinue`. Apps that don't set it keep the pop-up card, so no update is needed.
