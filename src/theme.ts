@@ -45,6 +45,12 @@ export interface GuardBrand {
    * Default false: the 1.0 pop-up card with "Use Face ID" and "Not now".
    */
   offerAsPage?: boolean;
+  /**
+   * Opt-in (1.3.0), used with `logoAtTop`. When true, the content (title, PIN dots and pad) starts right under the
+   * logo instead of being centred in the space below it, so there is no big gap between them on tall phones.
+   * Default false: centred, as in 1.1.0.
+   */
+  contentUnderLogo?: boolean;
 }
 
 /** The app's own text component, so the screens use its fonts. */
