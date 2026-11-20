@@ -27,6 +27,11 @@ export interface GuardConfig {
   limits: TryLimits;
   /** Block screenshots and screen recording while amounts are shown. Needs `screenCapture`. Default false. */
   blockScreenshotsWhenRevealed: boolean;
+  /**
+   * 1.5.0. With the lock off, amounts still start hidden and the eye shows them without a PIN. Default true.
+   * False: amounts hide only while the lock is on, and the eye is not drawn while it is off (for apps where the lock is optional).
+   */
+  hideAmountsWithoutLock: boolean;
 }
 
 export const DEFAULT_CONFIG: GuardConfig = {
@@ -41,6 +46,7 @@ export const DEFAULT_CONFIG: GuardConfig = {
   revealWith: 'pin',
   limits: DEFAULT_LIMITS,
   blockScreenshotsWhenRevealed: false,
+  hideAmountsWithoutLock: true,
 };
 
 const whole = (n: unknown, fallback: number, min: number, max: number) =>
@@ -72,6 +78,7 @@ export function normalizeConfig(input: Partial<GuardConfig> = {}): GuardConfig {
     revealWith: c.revealWith === 'pin-or-biometric' ? 'pin-or-biometric' : 'pin',
     limits,
     blockScreenshotsWhenRevealed: c.blockScreenshotsWhenRevealed === true,
+    hideAmountsWithoutLock: c.hideAmountsWithoutLock !== false,
   };
 }
 

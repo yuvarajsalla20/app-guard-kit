@@ -3,7 +3,7 @@ export { createGuardKit } from './createGuardKit';
 export type { GuardKit, GuardKitOptions } from './createGuardKit';
 export { GuardProvider } from './GuardProvider';
 export type { GuardProviderProps } from './GuardProvider';
-export { useGuardRevealed, useGuardState } from './context';
+export { useAmountsHidden, useGuardRevealed, useGuardState } from './context';
 export { Amount, MASK, RevealButton, useReveal } from './reveal';
 export type { AmountProps, Reveal, RevealButtonProps } from './reveal';
 export { ChangePinSheet } from './ui/screens';

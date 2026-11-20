@@ -2,6 +2,14 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 1.5.0
+
+For apps where the lock is optional. Nothing changes for apps that don't use the new options.
+
+- **`hideAmountsWithoutLock`** in `createGuardKit` (default true, the old behaviour). False: amounts show while the lock is off, hide once it is on, and `RevealButton` draws nothing while it is off.
+- **`useAmountsHidden()`**: whether amounts are hidden right now, following that option. Re-renders only when it flips. For amounts an app draws itself.
+- **`Amount`** follows `useAmountsHidden()` and takes three new optional props: `mask` may be an element (for example the currency sign and smaller dots), `adjustsFontSizeToFit`, and `label`, what a screen reader hears while shown, so an animated `value` still reads out the final amount.
+
 ## 1.4.0
 
 Speed. Nothing to change in an app; screens look the same. Saved PINs keep working (same hash format and bytes).
