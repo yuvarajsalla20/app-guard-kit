@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-> Status: **v1.5.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
+> Status: **v1.6.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·

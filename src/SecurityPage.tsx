@@ -26,46 +26,61 @@ export function SecurityPage({ tint }: SecurityPageProps) {
   const bioIcon: IconName = state.biometricKind === 'fingerprint' ? 'unlock' : 'smile';
   const choices = (xs: readonly number[]) => xs.map((s) => ({ value: s, label: durationLabel(s, strings) }));
 
+  // 1.6.0: with `strings.lockGroup`, the lock rows and Hide amounts after sit in two titled cards.
+  const split = !!strings.lockGroup;
+  const lockRows = [
+    !kit.config.requirePin ? (
+      <SettingRow key="lock" icon="lock" tint={color} label={strings.lockRow} toggle={{ value: lockOn, onChange: (on) => (on ? controller.turnOnLock() : setTurningOff(true)) }} last={split && !lockOn} />
+    ) : null,
+    lockOn && bio ? (
+      <SettingRow
+        key="bio"
+        icon={bioIcon}
+        tint={color}
+        label={strings.biometricsRow(bio)}
+        toggle={{ value: state.settings.biometrics, onChange: (on) => void (on ? controller.enableBiometrics() : controller.disableBiometrics()) }}
+      />
+    ) : null,
+    lockOn ? <SettingRow key="pin" icon="key" tint={color} label={strings.changePinRow} onPress={() => setChanging(true)} /> : null,
+    lockOn ? (
+      <PickerRow
+        key="grace"
+        icon="clock"
+        tint={color}
+        label={strings.lockAfterRow}
+        options={choices(withCurrent(kit.config.graceChoices, state.settings.graceSeconds))}
+        value={state.settings.graceSeconds}
+        onChange={(s) => void controller.setGraceSeconds(s)}
+        last={split}
+      />
+    ) : null,
+  ].filter(Boolean);
+  const hideRow = (
+    <PickerRow
+      key="hide"
+      icon="eye-off"
+      tint={color}
+      label={strings.hideAfterRow}
+      options={choices(withCurrent(kit.config.idleChoices, state.settings.idleHideSeconds))}
+      value={state.settings.idleHideSeconds}
+      onChange={(s) => void controller.setIdleHideSeconds(s)}
+      last
+    />
+  );
+
   return (
     <View style={{ gap: 16 }}>
-      <SettingsGroup>
-        {!kit.config.requirePin ? (
-          <SettingRow
-            icon="lock"
-            tint={color}
-            label={strings.lockRow}
-            toggle={{ value: lockOn, onChange: (on) => (on ? controller.turnOnLock() : setTurningOff(true)) }}
-          />
-        ) : null}
-        {lockOn && bio ? (
-          <SettingRow
-            icon={bioIcon}
-            tint={color}
-            label={strings.biometricsRow(bio)}
-            toggle={{ value: state.settings.biometrics, onChange: (on) => void (on ? controller.enableBiometrics() : controller.disableBiometrics()) }}
-          />
-        ) : null}
-        {lockOn ? <SettingRow icon="key" tint={color} label={strings.changePinRow} onPress={() => setChanging(true)} /> : null}
-        {lockOn ? (
-          <PickerRow
-            icon="clock"
-            tint={color}
-            label={strings.lockAfterRow}
-            options={choices(withCurrent(kit.config.graceChoices, state.settings.graceSeconds))}
-            value={state.settings.graceSeconds}
-            onChange={(s) => void controller.setGraceSeconds(s)}
-          />
-        ) : null}
-        <PickerRow
-          icon="eye-off"
-          tint={color}
-          label={strings.hideAfterRow}
-          options={choices(withCurrent(kit.config.idleChoices, state.settings.idleHideSeconds))}
-          value={state.settings.idleHideSeconds}
-          onChange={(s) => void controller.setIdleHideSeconds(s)}
-          last
-        />
-      </SettingsGroup>
+      {split ? (
+        <>
+          {lockRows.length ? <SettingsGroup title={strings.lockGroup}>{lockRows}</SettingsGroup> : null}
+          <SettingsGroup title={strings.privacyGroup || undefined}>{hideRow}</SettingsGroup>
+        </>
+      ) : (
+        <SettingsGroup>
+          {lockRows}
+          {hideRow}
+        </SettingsGroup>
+      )}
       <components.Text style={{ color: theme.muted, fontSize: 13, paddingHorizontal: 4 }}>{strings.securityFooter}</components.Text>
       <ChangePinSheet visible={changing} onClose={() => setChanging(false)} />
       <PinSheet

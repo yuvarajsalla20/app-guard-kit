@@ -2,6 +2,11 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 1.6.0
+
+- **Security page headings (opt-in):** new strings `lockGroup` and `privacyGroup`. With `lockGroup` set, the page shows two titled cards: the lock rows (App lock, Face ID, Change PIN, Lock after) and then Hide amounts after. Empty by default, so the page keeps its one card.
+- Lock after and Hide amounts after are account-kit `PickerRow`s, so an app that passes `pickers="pullDown"` to the Settings screen (app-account-kit 7.26.0) gets them as grey pills with a pull-down menu, with no change here.
+
 ## 1.5.0
 
 For apps where the lock is optional. Nothing changes for apps that don't use the new options.
