@@ -11,6 +11,7 @@ export default defineConfig({
       'react-native-safe-area-context': stub('safe-area'),
       'react-native': stub('react-native'),
       '@expo/vector-icons/Feather': stub('vector-icons'),
+      '@expo/vector-icons/MaterialCommunityIcons': stub('vector-icons'),
       'expo-secure-store': stub('expo-modules'),
       'expo-local-authentication': stub('expo-modules'),
       'expo-crypto': stub('expo-modules'),

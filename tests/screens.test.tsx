@@ -222,6 +222,23 @@ describe('GuardProvider', () => {
     expect(texts(r.root)).not.toContain('Locked');
   });
 
+  it('the Face ID key is an icon with a one-line "Face ID" caption, read out as "Use Face ID"', async () => {
+    const t = makeKit();
+    await t.c.setUser('u1');
+    await t.c.setPin('2580');
+    await t.c.enableBiometrics();
+    t.c.appState('background');
+    t.c.appState('active');
+    t.bio.face = 'cancel';
+    const r = await render(t, 'u1');
+    expect(texts(r.root)).toContain('Locked');
+    expect(texts(r.root)).toContain('Face ID');
+    expect(texts(r.root)).not.toContain('Use Face ID');
+    const icon = r.root.findAll((n) => (n.type as unknown) === 'Icon' && n.props.name === 'face-recognition');
+    expect(icon).toHaveLength(1);
+    expect(r.root.findAll((n) => n.props.accessibilityLabel === 'Use Face ID').length).toBeGreaterThan(0);
+  });
+
   it('too many tries shows Sign in again', async () => {
     const reconfirm = vi.fn(async () => true);
     const t = makeKit({ reconfirm, limits: { free: 1, waits: [], reconfirmAfter: 1 } });
