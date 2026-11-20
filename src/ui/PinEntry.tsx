@@ -9,8 +9,11 @@ export interface PinEntryProps {
   length: number;
   /** Called when all digits are in. Resolve an error line to show (the digits clear), or null when done. */
   onSubmit: (pin: string) => Promise<string | null>;
-  /** The key left of 0: Cancel, Face ID… Empty when not given. */
-  leftKey?: { label: string; onPress: () => void };
+  /**
+   * The key left of 0: Cancel, Face ID… Empty when not given. With `icon`, the key shows the icon with `caption`
+   * (one short line) under it, and `label` is only what a screen reader says.
+   */
+  leftKey?: { label: string; onPress: () => void; icon?: ReactNode; caption?: string };
   /** Shown instead of the keypad's error line, such as a wait countdown. Keys are disabled while set. */
   blocked?: string | null;
   /** Under the keypad (Forgot PIN?). */
@@ -86,7 +89,16 @@ export function PinEntry({ title, subtitle, length, onSubmit, leftKey, blocked, 
         ))}
         {leftKey ? (
           <Pressable onPress={leftKey.onPress} disabled={busy} accessibilityRole="button" accessibilityLabel={leftKey.label} style={styles.key}>
-            <Text maxFontSizeMultiplier={1.4} numberOfLines={2} style={[styles.word, { color: theme.muted }]}>{leftKey.label}</Text>
+            {leftKey.icon ? (
+              <>
+                {leftKey.icon}
+                {leftKey.caption ? (
+                  <Text maxFontSizeMultiplier={1.2} numberOfLines={1} adjustsFontSizeToFit style={[styles.caption, { color: theme.muted }]}>{leftKey.caption}</Text>
+                ) : null}
+              </>
+            ) : (
+              <Text maxFontSizeMultiplier={1.4} numberOfLines={2} style={[styles.word, { color: theme.muted }]}>{leftKey.label}</Text>
+            )}
           </Pressable>
         ) : (
           <View style={styles.key} />
@@ -114,6 +126,7 @@ const styles = StyleSheet.create({
   key: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   digit: { fontSize: 26, fontWeight: '500' },
   word: { fontSize: 13, textAlign: 'center' },
+  caption: { fontSize: 11, textAlign: 'center', marginTop: 4, maxWidth: 72 },
   pressed: { opacity: 0.6 },
   dim: { opacity: 0.45 },
 });

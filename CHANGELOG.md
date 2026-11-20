@@ -2,6 +2,11 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 1.7.0
+
+- **Face ID key on the lock screen** is now the Face ID icon (Touch ID: the fingerprint icon) with "Face ID" in small type under it, instead of "Use Face ID" in words, which wrapped onto two lines with larger text. Screen readers still say "Use Face ID". Nothing to change in an app.
+- `PinEntry`'s `leftKey` takes optional `icon` and `caption`.
+
 ## 1.6.0
 
 - **Security page headings (opt-in):** new strings `lockGroup` and `privacyGroup`. With `lockGroup` set, the page shows two titled cards: the lock rows (App lock, Face ID, Change PIN, Lock after) and then Hide amounts after. Empty by default, so the page keeps its one card.

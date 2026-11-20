@@ -1,4 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -140,7 +141,16 @@ export function LockScreen() {
         length={kit.config.pinLength}
         blocked={waitLine}
         onSubmit={async (pin) => pinMessage(await controller.unlockWithPin(pin), controller, strings)}
-        leftKey={canBio ? { label: strings.useBiometrics(bio), onPress: () => void controller.unlockWithBiometrics() } : undefined}
+        leftKey={
+          canBio
+            ? {
+                label: strings.useBiometrics(bio),
+                onPress: () => void controller.unlockWithBiometrics(),
+                icon: <MaterialCommunityIcons name={state.biometricKind === 'fingerprint' ? 'fingerprint' : 'face-recognition'} size={28} color={theme.muted} />,
+                caption: bio,
+              }
+            : undefined
+        }
         footer={
           <View style={styles.footer}>
             {state.notice === 'biometricsChanged' ? <components.Text style={[styles.note, { color: theme.muted }]}>{strings.biometricsChanged(strings.biometricName(state.biometricKind ?? 'face'))}</components.Text> : null}
