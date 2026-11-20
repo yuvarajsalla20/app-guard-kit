@@ -60,6 +60,9 @@ export interface GuardStrings {
   lockAfterRow: string;
   hideAfterRow: string;
   lockRow: string;
+  /** 1.6.0: optional grey headings on the Security page. With `lockGroup` set, the lock rows (lock, Face ID, Change PIN, Lock after) and Hide amounts after sit in two cards. Empty (the default): one card, no heading. */
+  lockGroup: string;
+  privacyGroup: string;
   lockOffConfirm: string;
   immediately: string;
   seconds: (n: number) => string;
@@ -122,6 +125,8 @@ export const DEFAULT_STRINGS: GuardStrings = {
   lockAfterRow: 'Lock after',
   hideAfterRow: 'Hide amounts after',
   lockRow: 'App lock',
+  lockGroup: '',
+  privacyGroup: '',
   lockOffConfirm: 'Enter your PIN to turn the lock off',
   immediately: 'Immediately',
   seconds: (n) => `${n} s`,
