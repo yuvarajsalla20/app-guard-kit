@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
-import type { ReactNode } from 'react';
+import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
 import { Pressable, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
-import { useGuardLook, useGuardRevealed, useGuardState } from './context';
+import { useAmountsHidden, useGuardLook, useGuardRevealed, useGuardState } from './context';
 import { formatSeconds } from './strings';
 import { PinSheet, pinMessage } from './ui/screens';
 
@@ -34,25 +34,29 @@ export interface AmountProps {
   style?: StyleProp<TextStyle>;
   /** Style added while hidden (a lighter color, say). */
   hiddenStyle?: StyleProp<TextStyle>;
-  /** What to show while hidden. Default `•••••`. */
-  mask?: string;
+  /** What to show while hidden. Default `•••••`. 1.5.0: may be an element, such as the currency sign and smaller dots. */
+  mask?: ReactNode;
   numberOfLines?: number;
+  /** 1.5.0: shrink the text to fit on its line. */
+  adjustsFontSizeToFit?: boolean;
+  /** 1.5.0: what a screen reader hears while shown. Default the shown text. Useful when `value` is animating: pass the final amount. */
+  label?: string;
 }
 
 /** A money amount that shows as ••••• until the eye and PIN reveal it. Every amount in the app should go through this. */
-export function Amount({ value, format, style, hiddenStyle, mask = MASK, numberOfLines }: AmountProps) {
+export function Amount({ value, format, style, hiddenStyle, mask = MASK, numberOfLines, adjustsFontSizeToFit, label }: AmountProps) {
   const look = useGuardLook();
-  const revealed = useGuardRevealed();
+  const hidden = useAmountsHidden();
   const Text = look.components.Text;
-  if (!revealed) {
+  if (hidden) {
     return (
-      <Text style={[style, hiddenStyle]} numberOfLines={numberOfLines} accessibilityLabel={look.strings.hiddenAmount}>
+      <Text style={[style, hiddenStyle]} numberOfLines={numberOfLines} adjustsFontSizeToFit={adjustsFontSizeToFit} accessibilityLabel={look.strings.hiddenAmount}>
         {mask}
       </Text>
     );
   }
   return (
-    <Text style={style} numberOfLines={numberOfLines}>
+    <Text style={style} numberOfLines={numberOfLines} adjustsFontSizeToFit={adjustsFontSizeToFit} accessibilityLabel={label}>
       {format(value)}
     </Text>
   );
@@ -69,8 +73,11 @@ export interface RevealButtonProps {
 
 /** The 👁 button: asks for the PIN and shows all amounts, or hides them straight away. */
 export function RevealButton({ size = 18, color, style, children }: RevealButtonProps) {
-  const { theme, strings } = useGuardLook();
+  const { theme, strings, kit } = useGuardLook();
   const { revealed, toggle } = useReveal();
+  const lockOff = useLockOff();
+  // 1.5.0: with hideAmountsWithoutLock false there is nothing to show or hide while the lock is off.
+  if (lockOff && !kit.config.hideAmountsWithoutLock) return null;
   return (
     <Pressable
       onPress={toggle}
@@ -82,6 +89,13 @@ export function RevealButton({ size = 18, color, style, children }: RevealButton
       {children ? children(revealed) : <Feather name={revealed ? 'eye-off' : 'eye'} size={size} color={color ?? theme.text} />}
     </Pressable>
   );
+}
+
+/** Whether the lock is off; re-renders only when that flips. */
+function useLockOff(): boolean {
+  const { controller } = useGuardLook();
+  const off = useCallback(() => controller.getState().phase === 'off', [controller]);
+  return useSyncExternalStore(controller.subscribe, off, off);
 }
 
 /** The PIN sheet the eye opens. `GuardProvider` draws it. */

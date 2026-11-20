@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-> Status: **v1.4.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
+> Status: **v1.5.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·
@@ -130,6 +130,9 @@ const { revealed, reveal, hide } = useReveal();
 | Masked text | `•••••` with the same width for every amount, so lengths do not give values away |
 | Screen reader | Reads "Amount hidden" |
 | Screenshots while shown | Allowed. Apps can block them with `blockScreenshotsWhenRevealed: true` and `screenCapture` (`expo-screen-capture`) |
+| With the lock off | Amounts start hidden and the eye shows them without a PIN. With `hideAmountsWithoutLock: false` (1.5.0) they show while the lock is off, and `RevealButton` is not drawn |
+
+`Amount` (1.5.0) also takes `mask` as an element (a currency sign and smaller dots, say), `adjustsFontSizeToFit`, and `label`, what a screen reader hears while shown, so an app can animate `value` and still read out the final amount. `useAmountsHidden()` says whether amounts are hidden right now, for amounts an app draws itself.
 
 "Idle" means no touch on the screen. The kit wraps the app in a touch listener to reset the timer, and the timer stops while the app is in the background.
 

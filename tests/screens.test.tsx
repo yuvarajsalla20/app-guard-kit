@@ -116,6 +116,51 @@ describe('GuardProvider', () => {
     expect(texts(r.root)).toContain('•••••');
   });
 
+  it('hideAmountsWithoutLock false (1.5.0): amounts show and no eye while the lock is off, and hide once it is on', async () => {
+    const t = makeKit({ requirePin: false, hideAmountsWithoutLock: false });
+    await t.c.setUser('u1');
+    const r = await render(t, 'u1');
+    expect(t.c.getState().phase).toBe('off');
+    expect(texts(r.root)).toContain('₹2,45,000');
+    expect(r.root.findAll((n) => (n.type as unknown) === 'Pressable' && n.props.accessibilityLabel === 'Show amounts')).toHaveLength(0);
+    await act(async () => {
+      await t.c.setPin('2580');
+    });
+    await act(async () => t.c.dismissOffer());
+    expect(t.c.getState().phase).not.toBe('off');
+    expect(texts(r.root)).toContain('•••••');
+    expect(texts(r.root).join(' ')).not.toContain('245');
+    expect(button(r.root, 'Show amounts')).toBeTruthy();
+  });
+
+  it('by default amounts start hidden even with the lock off', async () => {
+    const t = makeKit({ requirePin: false });
+    await t.c.setUser('u1');
+    const r = await render(t, 'u1');
+    expect(t.c.getState().phase).toBe('off');
+    expect(texts(r.root)).toContain('•••••');
+    expect(button(r.root, 'Show amounts')).toBeTruthy();
+  });
+
+  it('Amount (1.5.0): an element mask, and the label a screen reader hears while shown', async () => {
+    const t = makeKit({ requirePin: false, hideAmountsWithoutLock: false });
+    await t.c.setUser('u1');
+    await act(async () => {
+      tree = create(
+        <GuardProvider kit={t.kit} userId="u1">
+          <Amount value={10} format={inr} label="₹2,45,000" mask={<Text>₹ ··</Text>} />
+        </GuardProvider>,
+      );
+    });
+    const shown = tree!.root.find((n) => (n.type as unknown) === 'Text' && n.props.accessibilityLabel === '₹2,45,000');
+    expect(shown.children.join('')).toBe('₹10');
+    await act(async () => {
+      await t.c.setPin('2580');
+    });
+    await act(async () => t.c.dismissOffer());
+    expect(texts(tree!.root)).toContain('₹ ··');
+  });
+
   it('logoAtTop: the logo is pinned at the top on the lock screen and the show-amounts sheet', async () => {
     const t = makeKit();
     await t.c.setUser('u1');

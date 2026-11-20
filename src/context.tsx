@@ -39,6 +39,20 @@ export function useGuardRevealed(): boolean {
   return useSyncExternalStore(controller.subscribe, revealed, revealed);
 }
 
+/**
+ * 1.5.0: whether amounts are hidden right now. The same as `!useGuardRevealed()`, except that with
+ * `hideAmountsWithoutLock: false` amounts also show while the lock is off. Re-renders only when it flips.
+ */
+export function useAmountsHidden(): boolean {
+  const { controller, kit } = useGuardLook();
+  const always = kit.config.hideAmountsWithoutLock;
+  const hidden = useCallback(() => {
+    const s = controller.getState();
+    return !s.revealed && (always || s.phase !== 'off');
+  }, [controller, always]);
+  return useSyncExternalStore(controller.subscribe, hidden, hidden);
+}
+
 /** Keeps the same object while its own values are the same (inline theme/brand objects passed on every render). */
 export function useShallowStable<T extends object | undefined>(value: T): T {
   const [kept, setKept] = useState(value);
