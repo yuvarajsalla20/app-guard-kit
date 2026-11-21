@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-> Status: **v1.6.0.** The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions).
+**Current version: 2.0.0** (tag `v2.0.0`). The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions). The full release history is in [CHANGELOG.md](CHANGELOG.md).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·
@@ -13,7 +13,11 @@ Part of the shared kits:
 [app-payments-kit](https://github.com/yuvarajsalla20/app-payments-kit) ·
 [app-export-kit](https://github.com/yuvarajsalla20/app-export-kit) ·
 **app-guard-kit** ·
+[app-theme-kit](https://github.com/yuvarajsalla20/app-theme-kit) ·
+[app-invite-kit](https://github.com/yuvarajsalla20/app-invite-kit) ·
 [app-goldrates-api-kit](https://github.com/yuvarajsalla20/app-goldrates-api-kit)
+
+Tools that work alongside them: [code-review-kit](https://github.com/yuvarajsalla20/code-review-kit) (reviews) and app-insights-kit (store numbers, private).
 
 First used by **PAL – Personal Asset Locker**.
 
@@ -35,9 +39,10 @@ First used by **PAL – Personal Asset Locker**.
 12. [Expo and Firebase fit](#expo-and-firebase-fit)
 13. [Rules it follows](#rules-it-follows)
 14. [Kit rules](#kit-rules)
-15. [Build plan](#build-plan)
+15. [Build history](#build-history)
 16. [Decisions](#decisions)
 17. [Known limits](#known-limits)
+18. [Writing rule](#writing-rule)
 
 ---
 
@@ -171,11 +176,11 @@ Pinned like every kit: full commit SHA of a release tag, with the tag in `kitVer
   "app-guard-kit": "git+https://github.com/yuvarajsalla20/app-guard-kit.git#<full SHA of v1.0.0>"
 },
 "kitVersions": {
-  "app-guard-kit": "v1.0.0"
+  "app-guard-kit": "v2.0.0"
 }
 ```
 
-Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit refs/tags/v1.0.0`. Use `git+https`, never `git+ssh`.
+Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit refs/tags/v2.0.0`. Use `git+https`, never `git+ssh`.
 
 **Peer dependencies** (install with `npx expo install`):
 
@@ -185,7 +190,7 @@ Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit r
 | `expo-local-authentication` | Face ID / Touch ID (is it on this phone, Face or Touch) |
 | `expo-secure-store` | The PIN hash, settings and the Face ID secret in the Keychain |
 | `expo-crypto` | Random salt for the PIN hash |
-| `app-account-kit` ≥ 7.12.0 | Only for the Security page (`app-guard-kit/settings`) |
+| `app-account-kit` ≥ 7.30.0 | Only for the Security page (`app-guard-kit/settings`) |
 | `expo-screen-capture` | Only if screenshot blocking is turned on (the app passes it in) |
 
 The kit does not import app-core-kit or app-auth-kit itself: the app passes `onError: reportError` and a `reconfirm` function, so each kit stays independent.
@@ -249,17 +254,21 @@ const { revealed, reveal, hide, toggle } = useReveal();
 
 **`reconfirm`** is the app's own small function around the auth kit: Apple and Google sign the person in again with their sheet; email accounts ask for the password. It resolves `true` when the account was confirmed and `false` when cancelled. (A ready-made `reconfirm` inside app-auth-kit would remove this app code; see [Known limits](#known-limits).)
 
-**Wording and look:** `createGuardKit({ strings: { lockTitle: 'PAL is locked' } })`, and `theme`, `brand` (`logo`, `backdrop`, and since 1.1.0 `logoAtTop: true` to pin the logo at the top of every guard screen, including the show-amounts sheet; since 1.2.0 `offerAsPage: true` to show the Face ID offer as a page with a switch instead of a pop-up; since 1.3.0 `contentUnderLogo: true`, with `logoAtTop`, to start the PIN right under the logo instead of centring it) and `components` (`Text`, for the app's fonts) on `GuardProvider`.
+**Wording and look:** the kit's own words are the standard (2.0.0) and apps should not override them; `strings` remains only for a word the kit cannot know, such as the app's name. The look is set with `theme`, `brand` (`logo`, `backdrop`, and since 1.1.0 `logoAtTop: true` to pin the logo at the top of every guard screen, including the show-amounts sheet; since 1.2.0 `offerAsPage: true` to show the Face ID offer as a page with a switch instead of a pop-up; since 1.3.0 `contentUnderLogo: true`, with `logoAtTop`, to start the PIN right under the logo instead of centring it) and `components` (`Text`, for the app's fonts) on `GuardProvider`.
 
 ## Settings
 
-The kit gives a **Security page** to drop into app-settings-kit's `extraPages`:
+The kit gives a **Security page**. With app-settings-kit 8.0.0 or later, pass it to the kit's own Security row in Preferences:
 
 ```tsx
-import { securityPage } from 'app-guard-kit/settings';
+import { SecurityPage } from 'app-guard-kit/settings';
 
-<AppSettings … extraPages={[securityPage({ tint: '#A87A2E' })]} />
+<AppSettings … security={{ content: <SecurityPage tint={TINT} /> }} />
 ```
+
+Security is one of the two optional rows in app-settings-kit (with Appearance); every other row is required. Apps on app-settings-kit 7.x and earlier can still pass `securityPage({ tint })` in `extraPages`.
+
+The page holds:
 
 - Face ID: on / off (shown when the phone has Face ID or Touch ID)
 - Change PIN (current PIN, new PIN, new PIN again)
@@ -283,7 +292,7 @@ It is built from app-account-kit's `SettingRow` and `PickerRow`, so it looks lik
 - The cover shows **before** any app content on cold start (while sign-in and the Keychain load), so nothing flashes.
 - Amounts start hidden on every launch and hide on every trip to the background or the app switcher.
 - A wrong PIN and a cancelled Face ID never sign the person out by themselves.
-- Every word can be reworded through `strings`, like the other kits.
+- Every word follows the shared [Writing rule](#writing-rule). Apps do not override the kit's words.
 - No movement other than a fade, so Reduce Motion is respected; text follows Dynamic Type (the keypad digits up to 1.4×).
 
 ## Kit rules
@@ -310,7 +319,7 @@ tests/                vitest, with stand-ins for the Expo modules and React Nati
 
 `npm run typecheck` and `npm test` (84 tests) run in CI on every pull request.
 
-## Build plan
+## Build history
 
 | Step | What | State |
 |---|---|---|
@@ -321,7 +330,7 @@ tests/                vitest, with stand-ins for the Expo modules and React Nati
 | 5 | Hidden amounts: `Amount`, `RevealButton`, `useReveal`, idle timer, hide on background | Done, tested |
 | 6 | Forgot PIN (option A: sign in again) | Done in the kit; the app supplies `reconfirm` |
 | 7 | Security page for app-settings-kit | Done |
-| 8 | Release v1.0.0 and pin it in PAL | Merging the pull request tags v1.0.0 |
+| 8 | Release v1.0.0 and pin it in PAL | Done (current release: v2.0.0) |
 
 ## Decisions
 
@@ -342,6 +351,10 @@ Decided by the owner on 2026-11-16, and the kit's defaults:
 - The wrong-try wait can be shortened by moving the phone's clock forward (see [PIN](#pin)); the sign-in-again limit still holds.
 - `reconfirm` is written in the app for now. Adding a `reconfirm()` to app-auth-kit (Apple, Google, or a password prompt for email accounts) would let every app pass `authKit.reconfirm` instead.
 - iOS only has been designed for. Android should work with the same Expo modules but is untested.
+
+## Writing rule
+
+Every word this kit shows, and every line of its documentation, follows the shared [Writing rule](https://github.com/yuvarajsalla20/app-settings-kit#writing-rule-every-word-is-professional): Title Case for titles, rows and buttons; calm, complete sentences for captions and messages; "e.g.," for examples; no chatty fragments, slang or exclamation marks. Apps do not override these words; a change is made in the kit so that every app receives it.
 
 ## License
 
