@@ -20,3 +20,5 @@ export const AppState = {
   },
 };
 export const setAppState = (s: string) => appStateListeners.forEach((l) => l(s));
+/** The platform the words are for; tests switch it to check the Android names. */
+export const Platform: { OS: string } = { OS: 'ios' };

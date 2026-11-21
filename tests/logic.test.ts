@@ -124,3 +124,21 @@ describe('sliced PBKDF2 and async PIN checks', () => {
     expect(checkPin('2580', await hashPinAsync('2580', salt, 50))).toBe(true);
   });
 });
+
+describe('2.0.0 words', () => {
+  it('names the biometric the way each platform does', async () => {
+    const { Platform } = await import('react-native');
+    const { DEFAULT_STRINGS } = await import('../src/strings');
+    expect(DEFAULT_STRINGS.biometricName('face')).toBe('Face ID');
+    expect(DEFAULT_STRINGS.biometricName('fingerprint')).toBe('Touch ID');
+    (Platform as { OS: string }).OS = 'android';
+    expect(DEFAULT_STRINGS.biometricName('face')).toBe('Face Unlock');
+    expect(DEFAULT_STRINGS.biometricName('fingerprint')).toBe('Fingerprint');
+    (Platform as { OS: string }).OS = 'ios';
+  });
+
+  it('shows the Security page in two titled cards by default', async () => {
+    const { DEFAULT_STRINGS } = await import('../src/strings');
+    expect([DEFAULT_STRINGS.lockGroup, DEFAULT_STRINGS.privacyGroup]).toEqual(['App Lock', 'Privacy']);
+  });
+});
