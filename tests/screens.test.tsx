@@ -63,9 +63,9 @@ describe('GuardProvider', () => {
     const r = await render(t, 'u1');
     expect(texts(r.root)).toContain('Create a PIN');
     await typePin(r.root, '2580');
-    expect(texts(r.root)).toContain('Enter it again');
+    expect(texts(r.root)).toContain('Confirm Your PIN');
     await typePin(r.root, '2581');
-    expect(texts(r.root)).toContain('Those PINs did not match. Start again.');
+    expect(texts(r.root)).toContain('The PINs do not match. Please try again.');
     await typePin(r.root, '2580');
     await typePin(r.root, '2580');
     expect(t.c.getState().phase).toBe('open');
@@ -78,11 +78,11 @@ describe('GuardProvider', () => {
     await typePin(r.root, '2580');
     await typePin(r.root, '2580');
     expect(r.root.findAll((n) => (n.type as unknown) === 'Modal')).toHaveLength(0);
-    expect(texts(r.root)).toContain('Face ID is on. You can change this in Settings > Security.');
+    expect(texts(r.root)).toContain('Face ID is on. You can change this at any time in Settings > Security.');
     const sw = r.root.find((n) => (n.type as unknown) === 'Switch');
     expect(sw.props.value).toBe(true);
     await act(async () => sw.props.onValueChange(false));
-    expect(texts(r.root)).toContain('Face ID is off. You can turn it on in Settings > Security.');
+    expect(texts(r.root)).toContain('Face ID is off. You can turn it on at any time in Settings > Security.');
     await act(async () => button(r.root, 'Continue').props.onPress());
     expect(t.c.getState().offerBiometrics).toBe(false);
     expect(t.c.getState().settings.biometrics).toBe(false);
@@ -92,7 +92,7 @@ describe('GuardProvider', () => {
     const t = makeKit();
     const r = await render(t, 'u1');
     await typePin(r.root, '1234');
-    expect(texts(r.root)).toContain('That PIN is too easy to guess. Pick another.');
+    expect(texts(r.root)).toContain('This PIN is too easy to guess. Please choose another.');
     expect(texts(r.root)).toContain('Create a PIN');
   });
 
@@ -106,13 +106,13 @@ describe('GuardProvider', () => {
     expect(texts(r.root).join(' ')).not.toContain('245');
     const masked = r.root.find((n) => (n.type as unknown) === 'Text' && n.props.accessibilityLabel === 'Amount hidden');
     expect(masked).toBeTruthy();
-    await act(async () => button(r.root, 'Show amounts').props.onPress());
-    expect(texts(r.root)).toContain('Enter PIN to show amounts');
+    await act(async () => button(r.root, 'Show Amounts').props.onPress());
+    expect(texts(r.root)).toContain('Enter PIN to Show Amounts');
     await typePin(r.root, '9999');
-    expect(texts(r.root)).toContain('Wrong PIN. 4 tries left.');
+    expect(texts(r.root)).toContain('Incorrect PIN. 4 attempts remaining.');
     await typePin(r.root, '2580');
     expect(texts(r.root)).toContain('₹2,45,000');
-    await act(async () => button(r.root, 'Hide amounts').props.onPress());
+    await act(async () => button(r.root, 'Hide Amounts').props.onPress());
     expect(texts(r.root)).toContain('•••••');
   });
 
@@ -122,7 +122,7 @@ describe('GuardProvider', () => {
     const r = await render(t, 'u1');
     expect(t.c.getState().phase).toBe('off');
     expect(texts(r.root)).toContain('₹2,45,000');
-    expect(r.root.findAll((n) => (n.type as unknown) === 'Pressable' && n.props.accessibilityLabel === 'Show amounts')).toHaveLength(0);
+    expect(r.root.findAll((n) => (n.type as unknown) === 'Pressable' && n.props.accessibilityLabel === 'Show Amounts')).toHaveLength(0);
     await act(async () => {
       await t.c.setPin('2580');
     });
@@ -130,7 +130,7 @@ describe('GuardProvider', () => {
     expect(t.c.getState().phase).not.toBe('off');
     expect(texts(r.root)).toContain('•••••');
     expect(texts(r.root).join(' ')).not.toContain('245');
-    expect(button(r.root, 'Show amounts')).toBeTruthy();
+    expect(button(r.root, 'Show Amounts')).toBeTruthy();
   });
 
   it('by default amounts start hidden even with the lock off', async () => {
@@ -139,7 +139,7 @@ describe('GuardProvider', () => {
     const r = await render(t, 'u1');
     expect(t.c.getState().phase).toBe('off');
     expect(texts(r.root)).toContain('•••••');
-    expect(button(r.root, 'Show amounts')).toBeTruthy();
+    expect(button(r.root, 'Show Amounts')).toBeTruthy();
   });
 
   it('Amount (1.5.0): an element mask, and the label a screen reader hears while shown', async () => {
@@ -171,8 +171,8 @@ describe('GuardProvider', () => {
     const r = await render(t, 'u1', { logo, logoAtTop: true });
     const logos = () => r.root.findAll((n) => n.props.testID === 'app-logo' && (n.type as unknown) === 'Text');
     // Show-amounts sheet: the logo replaces the lock tile, once.
-    await act(async () => button(r.root, 'Show amounts').props.onPress());
-    expect(texts(r.root)).toContain('Enter PIN to show amounts');
+    await act(async () => button(r.root, 'Show Amounts').props.onPress());
+    expect(texts(r.root)).toContain('Enter PIN to Show Amounts');
     expect(logos()).toHaveLength(1);
     await act(async () => button(r.root, 'Cancel').props.onPress());
     // Lock screen: the logo once, at the top, not repeated above the title.
@@ -189,7 +189,7 @@ describe('GuardProvider', () => {
     t.c.dismissOffer();
     const logo = <Text testID="app-logo">PAL</Text>;
     const r = await render(t, 'u1', { logo });
-    await act(async () => button(r.root, 'Show amounts').props.onPress());
+    await act(async () => button(r.root, 'Show Amounts').props.onPress());
     expect(r.root.findAll((n) => n.props.testID === 'app-logo' && (n.type as unknown) === 'Text')).toHaveLength(0);
   });
 
@@ -249,8 +249,8 @@ describe('GuardProvider', () => {
     t.bio.enrolled = false;
     const r = await render(t, 'u1');
     await typePin(r.root, '1111');
-    expect(texts(r.root)).toContain('Too many tries');
-    await act(async () => r.root.find((n) => (n.type as unknown) === 'Pressable' && texts(n).includes('Sign in again')).props.onPress());
+    expect(texts(r.root)).toContain('Too Many Attempts');
+    await act(async () => r.root.find((n) => (n.type as unknown) === 'Pressable' && texts(n).includes('Sign In Again')).props.onPress());
     expect(reconfirm).toHaveBeenCalledOnce();
     expect(texts(r.root)).toContain('Create a PIN');
   });

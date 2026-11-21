@@ -2,6 +2,14 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 2.0.0
+
+Every word on the lock screen, PIN screens, Face ID offer and Security page is rewritten in one professional, consistent voice: titles and buttons in Title Case ("Confirm Your PIN", "Not Now", "Sign In Again", "Show Amounts", "Lock After"), messages as full, polite sentences ("Incorrect PIN. 2 attempts remaining.", "Unable to verify your PIN. Please try again.").
+
+- The Security page shows its two titled cards, **App Lock** and **Privacy**, by default. Set `lockGroup` and `privacyGroup` to '' for the old single card.
+- On Android the biometric is called **Face Unlock** or **Fingerprint** by default (Face ID and Touch ID are Apple's names).
+- Apps should delete their own word overrides (`lockGroup`, `privacyGroup`, `forgotPin`, `setupSubtitle`, `lockTitle`, `biometricName`) and use the kit's words.
+
 ## 1.8.0
 
 - **`preferFingerprint`** in `createGuardKit` (default false, the old behaviour). True: on a phone with both face and fingerprint unlock, `biometricKind` is 'fingerprint', so the words and the lock-screen icon name the fingerprint. Meant for Android, where face unlock often cannot open apps: pass `Platform.OS === 'android'`, and iPhone keeps Face ID. Nothing changes for apps that leave it out.
