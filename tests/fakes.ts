@@ -11,7 +11,7 @@ export interface Item {
 export function fakeModules() {
   const items = new Map<string, Item>();
   const calls: string[] = [];
-  const bio = { hardware: true, enrolled: true, kind: 2, face: 'ok' as 'ok' | 'cancel' | 'changed', prompts: 0 };
+  const bio = { hardware: true, enrolled: true, kind: 2, kinds: null as number[] | null, face: 'ok' as 'ok' | 'cancel' | 'changed', prompts: 0 };
   const modules: GuardModules = {
     accessible: 5,
     biometricAccessible: 6,
@@ -21,7 +21,7 @@ export function fakeModules() {
     biometrics: {
       hasHardwareAsync: async () => bio.hardware,
       isEnrolledAsync: async () => bio.enrolled,
-      supportedAuthenticationTypesAsync: async () => [bio.kind],
+      supportedAuthenticationTypesAsync: async () => bio.kinds ?? [bio.kind],
     },
     store: {
       getItemAsync: async (key, options) => {

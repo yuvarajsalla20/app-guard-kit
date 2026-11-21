@@ -2,6 +2,10 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 1.8.0
+
+- **`preferFingerprint`** in `createGuardKit` (default false, the old behaviour). True: on a phone with both face and fingerprint unlock, `biometricKind` is 'fingerprint', so the words and the lock-screen icon name the fingerprint. Meant for Android, where face unlock often cannot open apps: pass `Platform.OS === 'android'`, and iPhone keeps Face ID. Nothing changes for apps that leave it out.
+
 ## 1.7.0
 
 - **Face ID key on the lock screen** is now the Face ID icon (Touch ID: the fingerprint icon) with "Face ID" in small type under it, instead of "Use Face ID" in words, which wrapped onto two lines with larger text. Screen readers still say "Use Face ID". Nothing to change in an app.
