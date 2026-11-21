@@ -13,6 +13,12 @@ export interface GuardConfig {
   rejectObviousPins: boolean;
   /** Offer Face ID / Touch ID as the quick way in. Default true. */
   biometrics: boolean;
+  /**
+   * 1.8.0. When the phone has both face and fingerprint unlock, name and draw the fingerprint (`biometricKind`
+   * 'fingerprint'). Default false: face first, as before. For Android, where face unlock often cannot open apps; pass
+   * `Platform.OS === 'android'` so iPhone keeps Face ID.
+   */
+  preferFingerprint: boolean;
   /** How long the app may be away before it locks again, in seconds. Default 0 (every time). The person can change it in Settings. */
   graceSeconds: number;
   /** Choices for "Lock after" in Settings, in seconds. */
@@ -39,6 +45,7 @@ export const DEFAULT_CONFIG: GuardConfig = {
   pinLength: 4,
   rejectObviousPins: true,
   biometrics: true,
+  preferFingerprint: false,
   graceSeconds: 0,
   graceChoices: [0, 30, 60, 300],
   idleHideSeconds: 60,
@@ -71,6 +78,7 @@ export function normalizeConfig(input: Partial<GuardConfig> = {}): GuardConfig {
     pinLength: c.pinLength === 6 ? 6 : 4,
     rejectObviousPins: c.rejectObviousPins !== false,
     biometrics: c.biometrics !== false,
+    preferFingerprint: c.preferFingerprint === true,
     graceSeconds: whole(c.graceSeconds, 0, 0, 3600),
     graceChoices: list(c.graceChoices, DEFAULT_CONFIG.graceChoices, 3600),
     idleHideSeconds: whole(c.idleHideSeconds, 60, 5, 3600),

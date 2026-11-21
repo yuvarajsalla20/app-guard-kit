@@ -1,6 +1,6 @@
 {
   "name": "app-guard-kit",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Reusable app lock for React Native / Expo apps: Face ID / Touch ID with a PIN fallback, PIN setup and change kept on the device, hidden amounts revealed behind the PIN that hide again on their own, an app-switcher cover, wrong-PIN limits, and a Security page for app-settings-kit.",
   "main": "src/index.ts",
   "types": "src/index.ts",

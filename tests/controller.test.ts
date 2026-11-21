@@ -17,6 +17,34 @@ async function lockedKit(options = {}) {
   return again;
 }
 
+describe('preferFingerprint (1.8.0)', () => {
+  // Expo's types: 1 fingerprint, 2 face.
+  it('default: a phone with face and fingerprint is named Face ID (iPhone and old behaviour unchanged)', async () => {
+    const t = makeKit();
+    t.bio.kinds = [1, 2];
+    await t.c.setUser('u1');
+    expect(t.c.getState().biometricKind).toBe('face');
+  });
+
+  it('on: the same phone is named by its fingerprint', async () => {
+    const t = makeKit({ preferFingerprint: true });
+    t.bio.kinds = [1, 2];
+    await t.c.setUser('u1');
+    expect(t.c.getState().biometricKind).toBe('fingerprint');
+  });
+
+  it('on: a face-only phone stays face, a fingerprint-only phone stays fingerprint', async () => {
+    const face = makeKit({ preferFingerprint: true });
+    face.bio.kinds = [2];
+    await face.c.setUser('u1');
+    expect(face.c.getState().biometricKind).toBe('face');
+    const finger = makeKit({ preferFingerprint: true });
+    finger.bio.kinds = [1];
+    await finger.c.setUser('u1');
+    expect(finger.c.getState().biometricKind).toBe('fingerprint');
+  });
+});
+
 describe('first PIN', () => {
   it('starts in starting, asks for a PIN after sign-in, refuses obvious ones, then opens and offers Face ID', async () => {
     const { c } = makeKit();

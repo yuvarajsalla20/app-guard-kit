@@ -211,6 +211,7 @@ export const guard = createGuardKit({
   requirePin: true,               // PAL: the lock cannot be turned off
   pinLength: 4,
   biometrics: true,               // offer Face ID
+  preferFingerprint: Platform.OS === 'android', // 1.8.0: phones with face and fingerprint use the fingerprint (default false)
   graceSeconds: 0,                // lock every time the app comes back
   idleHideSeconds: 60,            // hide amounts after 60 s idle
   revealWith: 'pin',              // 'pin' | 'pin-or-biometric'
