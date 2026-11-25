@@ -1,3 +1,4 @@
+import { useShallowStable } from 'app-core-kit/shared';
 import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import { Text as RNText } from 'react-native';
 import type { GuardController, GuardState } from './controller';
@@ -53,19 +54,8 @@ export function useAmountsHidden(): boolean {
   return useSyncExternalStore(controller.subscribe, hidden, hidden);
 }
 
-/** Keeps the same object while its own values are the same (inline theme/brand objects passed on every render). */
-export function useShallowStable<T extends object | undefined>(value: T): T {
-  const [kept, setKept] = useState(value);
-  const same = kept === value || (!!kept && !!value && shallowEqual(kept, value));
-  if (!same) setKept(value);
-  return same ? kept : value;
-}
-
-const shallowEqual = (a: object, b: object): boolean => {
-  const ka = Object.keys(a);
-  const kb = Object.keys(b);
-  return ka.length === kb.length && ka.every((k) => Object.is((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
-};
+/** 2.2.0: app-core-kit's single copy (`app-core-kit/shared`), kept on this path for the kit's own imports. */
+export { useShallowStable };
 
 /** Re-renders once a second while `active`, for countdowns. */
 export function useTick(active: boolean): number {
