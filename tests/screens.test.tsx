@@ -4,6 +4,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GuardProvider } from '../src/GuardProvider';
 import { Amount, RevealButton } from '../src/reveal';
+import { ConfirmIdentity } from '../src/ui/ConfirmIdentity';
 import { makeKit } from './fakes';
 import { setAppState } from './stubs/react-native';
 
@@ -253,5 +254,51 @@ describe('GuardProvider', () => {
     await act(async () => r.root.find((n) => (n.type as unknown) === 'Pressable' && texts(n).includes('Sign In Again')).props.onPress());
     expect(reconfirm).toHaveBeenCalledOnce();
     expect(texts(r.root)).toContain('Create a PIN');
+  });
+
+  it('ConfirmIdentity (2.1.0): Face ID once on open, then the PIN; the lock itself does not change', async () => {
+    const t = makeKit();
+    await t.c.setUser('u1');
+    await t.c.setPin('2580');
+    await t.c.enableBiometrics();
+    t.bio.face = 'cancel';
+    const confirmed = vi.fn();
+    const before = t.bio.prompts;
+    await act(async () => {
+      tree = create(
+        <GuardProvider kit={t.kit} userId="u1">
+          <ConfirmIdentity onConfirmed={confirmed} />
+        </GuardProvider>,
+      );
+    });
+    const root = tree!.root;
+    expect(t.bio.prompts).toBe(before + 1);
+    expect(confirmed).not.toHaveBeenCalled();
+    expect(texts(root)).toContain("Confirm It's You");
+    expect(texts(root)).toContain('Use Face ID or enter your PIN.');
+    await typePin(root, '1111');
+    expect(confirmed).not.toHaveBeenCalled();
+    expect(texts(root).some((x) => x.startsWith('Incorrect PIN.'))).toBe(true);
+    await typePin(root, '2580');
+    expect(confirmed).toHaveBeenCalledTimes(1);
+    expect(t.c.getState().phase).toBe('open');
+  });
+
+  it('ConfirmIdentity: the Face ID key confirms', async () => {
+    const t = makeKit();
+    await t.c.setUser('u1');
+    await t.c.setPin('2580');
+    await t.c.enableBiometrics();
+    const confirmed = vi.fn();
+    await act(async () => {
+      tree = create(
+        <GuardProvider kit={t.kit} userId="u1">
+          <ConfirmIdentity onConfirmed={confirmed} offerBiometricsOnOpen={false} />
+        </GuardProvider>,
+      );
+    });
+    expect(confirmed).not.toHaveBeenCalled();
+    await act(async () => button(tree!.root, 'Use Face ID').props.onPress());
+    expect(confirmed).toHaveBeenCalledTimes(1);
   });
 });
