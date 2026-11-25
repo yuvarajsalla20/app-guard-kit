@@ -2,6 +2,14 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 2.1.0
+
+Nothing breaks. One addition and a tidier layout:
+
+- **`ConfirmIdentity`.** A "Confirm It's You" step for a serious action, e.g., closing the account: Face ID once when it opens, or the PIN. It fits inside a page (e.g., app-account-kit's `exitMenu.unlock`), so apps no longer need their own PIN pad for this. Wrong PINs count toward the same waits as the lock screen, and Face ID reads the same Keychain secret, so a newly added face cannot pass. New strings: `identityTitle` ("Confirm It's You") and `identitySubtitle`.
+- **`controller.confirmWithBiometrics()`.** The Face ID check on its own, without changing the lock.
+- **Smaller files.** The Keychain access (`vault.ts`), Face ID detection (`biometrics.ts`) and state types (`controllerTypes.ts`) leave `controller.ts`; `ui/screens.tsx` is split into the lock and setup screens, the Face ID offer, the PIN sheets and shared parts. Exports are unchanged.
+
 ## 2.0.0
 
 Every word on the lock screen, PIN screens, Face ID offer and Security page is rewritten in one professional, consistent voice: titles and buttons in Title Case ("Confirm Your PIN", "Not Now", "Sign In Again", "Show Amounts", "Lock After"), messages as full, polite sentences ("Incorrect PIN. 2 attempts remaining.", "Unable to verify your PIN. Please try again.").

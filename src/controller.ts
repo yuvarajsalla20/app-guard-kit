@@ -1,56 +1,12 @@
 import { afterWrong, mustReconfirm, NO_TRIES, parseTries, settle, secondsLeft, triesLeft, type TryState } from './logic/limits';
-import { defaultSettings, parseSettings, safeKeyPart, type GuardConfig, type GuardSettings } from './logic/options';
+import { defaultSettings, parseSettings, type GuardSettings } from './logic/options';
 import { checkPinAsync, derivePinJs, hashPinAsync, pinProblem, type PinProblem } from './logic/pin';
 import { toHex } from './logic/sha256';
-import { FACE, FINGERPRINT, type GuardModules, type ScreenCaptureLike } from './modules';
+import { detectBiometrics } from './biometrics';
+import type { BiometricResult, ControllerDeps, GuardState, Phase, PinResult } from './controllerTypes';
+import { ALL_ITEMS, GuardVault } from './vault';
 
-/**
- * - `starting`: waiting for sign-in or the Keychain; the cover is shown.
- * - `off`: nobody is signed in, or the lock is turned off; the app shows as normal.
- * - `setup`: signed in with no PIN yet; the PIN setup screen is shown.
- * - `locked`: the lock screen is shown.
- * - `open`: unlocked.
- */
-export type Phase = 'starting' | 'off' | 'setup' | 'locked' | 'open';
-
-export type BiometricKind = 'face' | 'fingerprint';
-
-export interface GuardState {
-  phase: Phase;
-  /** Hidden amounts are showing. Memory only: every launch starts hidden. */
-  revealed: boolean;
-  /** The app switcher cover is up (the app is not in front). */
-  covered: boolean;
-  settings: GuardSettings;
-  /** Face ID or Touch ID is set up on this phone (whether or not the person turned it on here). */
-  biometricKind: BiometricKind | null;
-  /** Ask "Unlock with Face ID?" once, right after the first PIN is set. */
-  offerBiometrics: boolean;
-  /** The setup screen can be closed (turning the lock on in an app where it is optional). */
-  setupCancellable: boolean;
-  tries: TryState;
-  /** Too many wrong PINs: only signing in again (`reconfirm`) gets back in. */
-  reconfirmNeeded: boolean;
-  /** Face ID was turned off because the phone's faces or fingerprints changed. */
-  notice: 'biometricsChanged' | null;
-}
-
-export type PinResult = 'ok' | 'wrong' | 'wait' | 'reconfirm' | 'error';
-export type BiometricResult = 'ok' | 'cancel' | 'changed' | 'unavailable';
-
-export interface ControllerDeps {
-  config: GuardConfig;
-  modules: GuardModules;
-  /** Signs the person in again (Apple, Google or password). Resolves true when it was really them. */
-  reconfirm?: () => Promise<boolean>;
-  screenCapture?: ScreenCaptureLike;
-  onError?: (where: string, error: unknown) => void;
-  /** Wording for the Face ID prompt. */
-  biometricPrompt: () => string;
-  now?: () => number;
-}
-
-const USER_KEY = 'appguard.user';
+export type { BiometricKind, BiometricResult, ControllerDeps, GuardState, Phase, PinResult } from './controllerTypes';
 
 /** The whole lock as plain logic, with no React. `GuardProvider` draws it; tests drive it directly. */
 export class GuardController {
@@ -63,9 +19,11 @@ export class GuardController {
   /** A system sheet (Face ID, Apple sign-in) is up: iOS reports the app as inactive, which must not cover or lock. */
   private prompting = 0;
   private readonly now: () => number;
+  private readonly vault: GuardVault;
 
   constructor(private readonly deps: ControllerDeps) {
     this.now = deps.now ?? Date.now;
+    this.vault = new GuardVault(deps.modules, (where, e) => this.report(where, e));
     this.state = {
       phase: 'starting',
       revealed: false,
@@ -115,18 +73,6 @@ export class GuardController {
     return this.deps.config;
   }
 
-  private get store() {
-    return this.deps.modules.store;
-  }
-
-  private key(name: 'pin' | 'settings' | 'tries' | 'bio', userId = this.userId): string {
-    return `appguard.${safeKeyPart(userId ?? '_')}.${name}`;
-  }
-
-  private opts() {
-    return { keychainAccessible: this.deps.modules.accessible };
-  }
-
   // ── Who is signed in ─────────────────────────────────────────────────────
 
   /**
@@ -144,22 +90,22 @@ export class GuardController {
       return;
     }
     try {
-      const last = await this.store.getItemAsync(USER_KEY, this.opts());
+      const last = await this.vault.lastUser();
       if (gen !== this.generation) return;
-      if (last && last !== userId) await this.wipe(last);
+      if (last && last !== userId) await this.vault.remove(last, ALL_ITEMS);
       if (userId === null) {
-        if (last) await this.store.deleteItemAsync(USER_KEY, this.opts());
+        if (last) await this.vault.forgetUser();
         if (gen !== this.generation) return;
         this.set({ phase: 'off', revealed: false, offerBiometrics: false, reconfirmNeeded: false, tries: NO_TRIES, notice: null, settings: defaultSettings(this.config) });
         return;
       }
-      if (last !== userId) await this.store.setItemAsync(USER_KEY, userId, this.opts());
+      if (last !== userId) await this.vault.rememberUser(userId);
       const [pin, rawSettings, rawTries] = await Promise.all([
-        this.store.getItemAsync(this.key('pin'), this.opts()),
-        this.store.getItemAsync(this.key('settings'), this.opts()),
-        this.store.getItemAsync(this.key('tries'), this.opts()),
+        this.vault.read(userId, 'pin'),
+        this.vault.read(userId, 'settings'),
+        this.vault.read(userId, 'tries'),
       ]);
-      const biometricKind = await this.detectBiometrics();
+      const biometricKind = await detectBiometrics(this.deps.modules.biometrics, this.config, (e) => this.report('biometrics', e));
       if (gen !== this.generation) return;
       const settings = parseSettings(rawSettings, this.config);
       const tries = settle(parseTries(rawTries), this.now());
@@ -177,37 +123,12 @@ export class GuardController {
     }
   };
 
-  private async detectBiometrics(): Promise<BiometricKind | null> {
-    if (!this.config.biometrics) return null;
-    try {
-      const b = this.deps.modules.biometrics;
-      if (!(await b.hasHardwareAsync()) || !(await b.isEnrolledAsync())) return null;
-      const types = await b.supportedAuthenticationTypesAsync();
-      if (this.config.preferFingerprint && types.includes(FINGERPRINT)) return 'fingerprint';
-      if (types.includes(FACE)) return 'face';
-      if (types.includes(FINGERPRINT)) return 'fingerprint';
-      return null;
-    } catch (e) {
-      this.report('biometrics', e);
-      return null;
-    }
-  }
-
-  /** Removes everything the kit saved for one person. */
-  private async wipe(userId: string) {
-    await Promise.all(
-      (['pin', 'settings', 'tries', 'bio'] as const).map((k) =>
-        this.store.deleteItemAsync(this.key(k, userId), this.opts()).catch((e) => this.report('wipe', e)),
-      ),
-    );
-  }
-
   /** For Delete account (call it from the app's `eraseData`): removes this person's PIN, Face ID and settings from the Keychain. */
   clear = async (): Promise<void> => {
     const id = this.userId;
     this.clearIdle();
-    if (id) await this.wipe(id);
-    await this.store.deleteItemAsync(USER_KEY, this.opts()).catch((e) => this.report('wipe', e));
+    if (id) await this.vault.remove(id, ALL_ITEMS);
+    await this.vault.forgetUser().catch((e) => this.report('wipe', e));
     this.set({ phase: 'off', revealed: false, tries: NO_TRIES, reconfirmNeeded: false, offerBiometrics: false, settings: defaultSettings(this.config) });
   };
 
@@ -243,15 +164,15 @@ export class GuardController {
 
   private async savePin(pin: string) {
     const salt = this.deps.modules.randomBytes(16);
-    await this.store.setItemAsync(this.key('pin'), await hashPinAsync(pin, salt, undefined, this.derive), this.opts());
+    await this.vault.write(this.userId, 'pin', await hashPinAsync(pin, salt, undefined, this.derive));
   }
 
   private async saveSettings(settings: GuardSettings) {
-    await this.store.setItemAsync(this.key('settings'), JSON.stringify(settings), this.opts());
+    await this.vault.write(this.userId, 'settings', JSON.stringify(settings));
   }
 
   private async saveTries(tries: TryState) {
-    await this.store.setItemAsync(this.key('tries'), JSON.stringify(tries), this.opts());
+    await this.vault.write(this.userId, 'tries', JSON.stringify(tries));
   }
 
   /** Tries left before the next wait (or before signing in again). */
@@ -274,7 +195,7 @@ export class GuardController {
     if (secondsLeft(tries, now) > 0) return 'wait';
     let record: string | null;
     try {
-      record = await this.store.getItemAsync(this.key('pin'), this.opts());
+      record = await this.vault.read(this.userId, 'pin');
     } catch (e) {
       this.report('readPin', e);
       return 'error';
@@ -340,15 +261,11 @@ export class GuardController {
     if (!this.canUseBiometrics()) return 'unavailable';
     this.prompting++;
     try {
-      const value = await this.store.getItemAsync(this.key('bio'), {
-        requireAuthentication: true,
-        authenticationPrompt: this.deps.biometricPrompt(),
-        keychainAccessible: this.deps.modules.biometricAccessible,
-      });
+      const value = await this.vault.readBio(this.userId, this.deps.biometricPrompt());
       if (value) return 'ok';
       const settings = { ...this.state.settings, biometrics: false };
       await this.saveSettings(settings).catch((e) => this.report('saveSettings', e));
-      await this.store.deleteItemAsync(this.key('bio'), this.opts()).catch(() => undefined);
+      await this.vault.dropBio(this.userId);
       this.set({ settings, notice: 'biometricsChanged' });
       return 'changed';
     } catch {
@@ -358,6 +275,12 @@ export class GuardController {
       this.prompting--;
     }
   }
+
+  /**
+   * 2.1.0: asks for Face ID to confirm a step (e.g., closing the account) without changing the lock. Reads the same
+   * secret as the lock screen, so a newly added face cannot pass.
+   */
+  confirmWithBiometrics = (): Promise<BiometricResult> => this.biometricCheck();
 
   unlockWithBiometrics = async (): Promise<BiometricResult> => {
     if (this.state.phase !== 'locked') return 'unavailable';
@@ -375,17 +298,17 @@ export class GuardController {
     const token = toHex(this.deps.modules.randomBytes(16));
     this.prompting++;
     try {
-      await this.store.deleteItemAsync(this.key('bio'), this.opts()).catch(() => undefined);
-      const bioOpts = { requireAuthentication: true, keychainAccessible: this.deps.modules.biometricAccessible, authenticationPrompt: this.deps.biometricPrompt() };
-      await this.store.setItemAsync(this.key('bio'), token, bioOpts);
-      const back = await this.store.getItemAsync(this.key('bio'), bioOpts);
+      await this.vault.dropBio(this.userId);
+      const prompt = this.deps.biometricPrompt();
+      await this.vault.writeBio(this.userId, token, prompt);
+      const back = await this.vault.readBio(this.userId, prompt);
       if (back !== token) throw new Error('Face ID check did not match');
       const settings = { ...this.state.settings, biometrics: true };
       await this.saveSettings(settings);
       this.set({ settings, offerBiometrics: false, notice: null });
       return true;
     } catch {
-      await this.store.deleteItemAsync(this.key('bio'), this.opts()).catch(() => undefined);
+      await this.vault.dropBio(this.userId);
       this.set({ offerBiometrics: false });
       return false;
     } finally {
@@ -395,7 +318,7 @@ export class GuardController {
 
   disableBiometrics = async (): Promise<void> => {
     const settings = { ...this.state.settings, biometrics: false };
-    await this.store.deleteItemAsync(this.key('bio'), this.opts()).catch((e) => this.report('wipe', e));
+    await this.vault.remove(this.userId, ['bio']);
     await this.saveSettings(settings).catch((e) => this.report('saveSettings', e));
     this.set({ settings, offerBiometrics: false });
   };
@@ -425,9 +348,7 @@ export class GuardController {
     }
     if (!ok || gen !== this.generation) return false;
     this.clearIdle();
-    await Promise.all(
-      (['pin', 'tries', 'bio'] as const).map((k) => this.store.deleteItemAsync(this.key(k), this.opts()).catch((e) => this.report('wipe', e))),
-    );
+    await this.vault.remove(this.userId, ['pin', 'tries', 'bio']);
     const settings = { ...this.state.settings, biometrics: false, lock: true };
     await this.saveSettings(settings).catch((e) => this.report('saveSettings', e));
     this.set({ phase: 'setup', setupCancellable: false, settings, tries: NO_TRIES, reconfirmNeeded: false, revealed: false, notice: null });
@@ -465,7 +386,7 @@ export class GuardController {
     if (this.config.requirePin) return 'error';
     const result = await this.verify(pin);
     if (result !== 'ok') return result;
-    await Promise.all((['pin', 'bio'] as const).map((k) => this.store.deleteItemAsync(this.key(k), this.opts()).catch((e) => this.report('wipe', e))));
+    await this.vault.remove(this.userId, ['pin', 'bio']);
     await this.update({ lock: false, biometrics: false });
     this.set({ phase: 'off' });
     return 'ok';

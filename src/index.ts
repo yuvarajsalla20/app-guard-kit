@@ -7,6 +7,8 @@ export { useAmountsHidden, useGuardRevealed, useGuardState } from './context';
 export { Amount, MASK, RevealButton, useReveal } from './reveal';
 export type { AmountProps, Reveal, RevealButtonProps } from './reveal';
 export { ChangePinSheet } from './ui/screens';
+export { ConfirmIdentity } from './ui/ConfirmIdentity';
+export type { ConfirmIdentityProps } from './ui/ConfirmIdentity';
 export { GuardController } from './controller';
 export type { BiometricKind, BiometricResult, GuardState, Phase, PinResult } from './controller';
 export { DEFAULT_STRINGS } from './strings';

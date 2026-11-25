@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-**Current version: 2.0.0** (tag `v2.0.0`). The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions). The full release history is in [CHANGELOG.md](CHANGELOG.md).
+**Current version: 2.1.0** (tag `v2.1.0`). The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions). The full release history is in [CHANGELOG.md](CHANGELOG.md).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·
@@ -112,6 +112,7 @@ The lock screen is themeable like the auth kit's sign-in screen (logo, colours, 
 - Uses `expo-local-authentication`. The prompt text comes from the app (`NSFaceIDUsageDescription` in `app.json`).
 - If Face ID fails, is cancelled, is not enrolled, or the phone's Face ID set changes (someone adds a new face), the kit falls back to the PIN. A change in enrolled faces turns Face ID off until the PIN is entered: Face ID reads a Keychain secret that iOS keeps only for "the faces enrolled now" (`biometryCurrentSet`), and iOS deletes it when a face is added.
 - Face ID can also reveal hidden amounts, if the app allows it (`revealWith: 'pin' | 'pin-or-biometric'`). Default and PAL: **PIN only**.
+- **Confirm It's You (2.1.0).** `<ConfirmIdentity onConfirmed={...} />` asks for Face ID (once, when it opens) or the PIN before a serious step, e.g., closing the account. It draws no screen of its own, so it fits inside a page such as app-account-kit's `exitMenu.unlock`; render it inside `GuardProvider`. Wrong PINs count toward the same waits and sign-in limit as the lock screen, and Face ID reads the same Keychain secret, so a newly added face cannot pass. `controller.confirmWithBiometrics()` is the Face ID check on its own.
 
 ## Hidden amounts (reveal behind the PIN)
 
@@ -173,14 +174,14 @@ Pinned like every kit: full commit SHA of a release tag, with the tag in `kitVer
 ```jsonc
 // package.json of the app
 "dependencies": {
-  "app-guard-kit": "git+https://github.com/yuvarajsalla20/app-guard-kit.git#<full SHA of v1.0.0>"
+  "app-guard-kit": "git+https://github.com/yuvarajsalla20/app-guard-kit.git#<full SHA of v2.1.0>"
 },
 "kitVersions": {
-  "app-guard-kit": "v2.0.0"
+  "app-guard-kit": "v2.1.0"
 }
 ```
 
-Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit refs/tags/v2.0.0`. Use `git+https`, never `git+ssh`.
+Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit refs/tags/v2.1.0`. Use `git+https`, never `git+ssh`.
 
 **Peer dependencies** (install with `npx expo install`):
 
@@ -307,17 +308,20 @@ It is built from app-account-kit's `SettingRow` and `PickerRow`, so it looks lik
 src/
   createGuardKit.ts   options and the kit object
   controller.ts       the whole lock as plain logic: PIN, Face ID, waits, grace, idle hide, sign-out wipe
+  controllerTypes.ts  the lock's state and result types
+  vault.ts            the Keychain side: item names per person and the Face ID secret
+  biometrics.ts       which of Face ID or Touch ID the phone has
   GuardProvider.tsx   draws the lock screen, PIN setup, Face ID offer and app-switcher cover; idle touches
   reveal.tsx          Amount, RevealButton, useReveal
   SecurityPage.tsx    the Settings page (entry: app-guard-kit/settings)
-  ui/                 PIN pad and screens
+  ui/                 PIN pad, lock and setup screens, Face ID offer, PIN sheets, ConfirmIdentity, shared parts
   logic/              PIN hash (PBKDF2-SHA-256), obvious-PIN rules, wrong-try limits, options
   modules.ts          the Expo modules, swappable in tests
   strings.ts theme.ts kit.ts
 tests/                vitest, with stand-ins for the Expo modules and React Native
 ```
 
-`npm run typecheck` and `npm test` (84 tests) run in CI on every pull request.
+`npm run typecheck` and `npm test` (106 tests) run in CI on every pull request.
 
 ## Build history
 

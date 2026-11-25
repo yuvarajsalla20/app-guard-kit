@@ -10,6 +10,9 @@ export interface GuardStrings {
   useBiometrics: (bio: string) => string;
   biometricPrompt: (bio: string) => string;
   forgotPin: string;
+  /** 2.1.0: ConfirmIdentity, the check before a serious step (e.g., closing the account). `bio` is null without Face ID. */
+  identityTitle: string;
+  identitySubtitle: (bio: string | null) => string;
   // PIN entry
   enterPin: string;
   wrongPin: (triesLeft: number) => string;
@@ -82,6 +85,8 @@ export const DEFAULT_STRINGS: GuardStrings = {
   lockTitle: 'Locked',
   lockSubtitle: 'Enter your PIN to continue.',
   useBiometrics: (bio) => `Use ${bio}`,
+  identityTitle: 'Confirm It\'s You',
+  identitySubtitle: (bio) => (bio ? `Use ${bio} or enter your PIN.` : 'Enter your PIN to continue.'),
   biometricPrompt: (bio) => `Unlock with ${bio}`,
   forgotPin: 'Forgot PIN?',
   enterPin: 'Enter PIN',
