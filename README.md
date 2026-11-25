@@ -2,7 +2,7 @@
 
 Keeps a signed-in app **locked on the device**: Face ID / Touch ID with a PIN fallback when the app opens or comes back from the background, a PIN that is set up and changed on the phone, **hidden amounts** that are revealed only after the PIN and hide again on their own, and a way to reset a forgotten PIN. For React Native / Expo apps (iOS first). Nothing in it is specific to any one app.
 
-**Current version: 2.1.0** (tag `v2.1.0`). The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions). The full release history is in [CHANGELOG.md](CHANGELOG.md).
+**Current version: 2.2.0** (tag `v2.2.0`). The open choices were decided by the owner on 2026-11-16; see [Decisions](#decisions). The full release history is in [CHANGELOG.md](CHANGELOG.md).
 
 Part of the shared kits:
 [app-core-kit](https://github.com/yuvarajsalla20/app-core-kit) ·
@@ -174,14 +174,14 @@ Pinned like every kit: full commit SHA of a release tag, with the tag in `kitVer
 ```jsonc
 // package.json of the app
 "dependencies": {
-  "app-guard-kit": "git+https://github.com/yuvarajsalla20/app-guard-kit.git#<full SHA of v2.1.0>"
+  "app-guard-kit": "git+https://github.com/yuvarajsalla20/app-guard-kit.git#<full SHA of v2.2.0>"
 },
 "kitVersions": {
-  "app-guard-kit": "v2.1.0"
+  "app-guard-kit": "v2.2.0"
 }
 ```
 
-Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit refs/tags/v2.1.0`. Use `git+https`, never `git+ssh`.
+Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit refs/tags/v2.2.0`. Use `git+https`, never `git+ssh`.
 
 **Peer dependencies** (install with `npx expo install`):
 
@@ -191,6 +191,7 @@ Find a SHA with `git ls-remote https://github.com/yuvarajsalla20/app-guard-kit r
 | `expo-local-authentication` | Face ID / Touch ID (is it on this phone, Face or Touch) |
 | `expo-secure-store` | The PIN hash, settings and the Face ID secret in the Keychain |
 | `expo-crypto` | Random salt for the PIN hash |
+| `app-core-kit` ≥ 1.11.0 | Always (2.2.0: the shared helpers) |
 | `app-account-kit` ≥ 7.30.0 | Only for the Security page (`app-guard-kit/settings`) |
 | `expo-screen-capture` | Only if screenshot blocking is turned on (the app passes it in) |
 

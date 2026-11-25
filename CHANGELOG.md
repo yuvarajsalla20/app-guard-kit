@@ -2,6 +2,10 @@
 
 Upgrade notes for app-guard-kit, newest first. Each version is tagged in git (`v1.0.0`).
 
+## 2.2.0
+
+Nothing breaks. The provider keeps inline theme, brand and component objects steady with app-core-kit's single copy of `useShallowStable` (`app-core-kit/shared`), so the kits no longer carry copies that drift apart. New peer dependency: app-core-kit 1.11.0 or later, which every app on the kits already installs.
+
 ## 2.1.0
 
 Nothing breaks. One addition and a tidier layout:
